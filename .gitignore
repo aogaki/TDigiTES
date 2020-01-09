@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+CMakeCache.txt
+CMakeFiles/
+Makefile
+RunNumber.txt
+_cfg.txt
+cmake_install.cmake
+compile_commands.json
+digi
+*.root
