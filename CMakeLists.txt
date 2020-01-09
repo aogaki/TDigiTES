@@ -28,4 +28,4 @@ file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cpp)
 # Add the executable, and link it to the Geant4 libraries
 #
 add_executable(digi main.cpp ${sources} ${headers})
-target_link_libraries(digi ${ROOT_LIBRARIES} CAENDigitizer)
+target_link_libraries(digi ${ROOT_LIBRARIES} CAENDigitizer RHTTP)

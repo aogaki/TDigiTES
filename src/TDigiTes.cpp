@@ -11,7 +11,11 @@ TDigiTes::TDigiTes()
   fDataVec = new std::vector<TPSDData_t>;
 };
 
-TDigiTes::~TDigiTes() { delete fDataVec; };
+TDigiTes::~TDigiTes()
+{
+  FreeMemory();
+  delete fDataVec;
+};
 
 void TDigiTes::LoadParameters()
 {

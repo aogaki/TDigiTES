@@ -18,6 +18,7 @@ class TDigiTes
   ~TDigiTes();
 
   void LoadParameters();
+  const Config_t GetParameters() { return fWDcfg; };
 
   void InitDigitizers();
 

@@ -61,7 +61,7 @@
 #define myMax(a, b) ((a) > (b) ? (a) : (b))
 #endif
 #ifndef min
-#define min(a, b) ((a) < (b) ? (a) : (b))
+#define myMin(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 #ifndef CH2KEV

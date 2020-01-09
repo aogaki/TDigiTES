@@ -12,8 +12,8 @@
 # Acquisition Mode (MIXED, LIST, OFF_LINE)
 #---------------------------------------------------------------------------------------
 AcquisitionMode               MIXED
-RecordLength                  50
-PreTrigger                    10
+RecordLength                  500
+PreTrigger                    100
 
 #---------------------------------------------------------------------------------------
 # Stop Criteria (0 = infinite)
@@ -78,7 +78,7 @@ CFDfraction                   2
 #---------------------------------------------------------------------------------------
 GateWidth                     100
 ShortGateWidth                40
-PreGate                       10
+PreGate                       50
 PileUpMode                    0
 PurGap                        10
 NSBaseline                    2

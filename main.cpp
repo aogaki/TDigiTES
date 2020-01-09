@@ -3,6 +3,7 @@
 #include <TCanvas.h>
 #include <TGraph.h>
 #include <TH1.h>
+#include <TSystem.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "BoardUtils.h"
 #include "Configure.h"
@@ -28,6 +30,7 @@
 #include "digiTES.h"
 // #include "fft.h"
 
+#include "TDataTaking.hpp"
 #include "TDigiTes.hpp"
 #include "TPSDData.hpp"
 
@@ -61,55 +64,28 @@ int main(int argc, char *argv[])
 {
   TApplication app("testApp", &argc, argv);
 
-  std::unique_ptr<TDigiTes> digitizer(new TDigiTes());
-  digitizer->LoadParameters();
-  digitizer->InitDigitizers();
-
-  digitizer->AllocateMemory();
+  auto digitizer = new TDataTaking;
 
   digitizer->Start();
 
-  TH1D *hisCharge = new TH1D("hisCharge", "test", 2000, 0, 2000);
-  TCanvas *canvas = new TCanvas();
-  TGraph *grWave = new TGraph();
-  grWave->SetMaximum(20000);
-  grWave->SetMinimum(0);
-  TCanvas *canvas2 = new TCanvas();
-  canvas->cd();
-  hisCharge->Draw();
+  std::thread readDigitizer(&TDataTaking::ReadDigitizer, digitizer);
+  std::thread fillData(&TDataTaking::FillData, digitizer);
 
-  for (int i = 0; true; i++) {
-    digitizer->ReadEvents();
-    auto data = digitizer->GetData();
-    const auto kHit = data->size();
-    for (auto iHit = 0; iHit < kHit; iHit++) {
-      if (data->at(iHit).ChNumber == 0) {
-        hisCharge->Fill(data->at(iHit).ChargeShort);
+  while (true) {
+    gSystem->ProcessEvents();  // This should be called at main thread
 
-        auto size = data->at(iHit).RecordLength;
-        auto signal = data->at(iHit).WaveForm;
-
-        for (auto i = 0; i < size; i++) {
-          grWave->SetPoint(i, i * 2, signal[i]);
-        }
-      }
+    if (testKbHit()) {
+      digitizer->Terminate();
+      readDigitizer.join();
+      fillData.join();
+      break;
     }
-
-    canvas2->cd();
-    grWave->Draw("AC");
-    canvas2->Update();
-
-    canvas->cd();
-    hisCharge->Draw();
-    canvas->Update();
-
-    if (testKbHit()) break;
 
     usleep(1000);
   }
 
   digitizer->Stop();
 
-  digitizer->FreeMemory();
+  delete digitizer;
   return 0;
 }
