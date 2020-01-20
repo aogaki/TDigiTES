@@ -10,6 +10,7 @@ typedef struct {
   uint64_t TimeStamp;
   uint32_t RecordLength;
   uint16_t *WaveForm;
+  // uint16_t WaveForm[1024]; // Check maximum number of samples
   int16_t ChargeShort;
   int16_t ChargeLong;
 } TPSDData_t;
