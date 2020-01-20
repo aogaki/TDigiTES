@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <string.h>
 
 #include "TDataTaking.hpp"
 
@@ -31,13 +32,13 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
   // fServer->Register("/", fHisADC);
 
   fTree = new TTree("data", "Neutron detector test");
-  fTree->Branch("Ch", &fData.ChNumber, "fData.ChNumber/b");
-  fTree->Branch("ChargeShort", &fData.ChargeShort, "fData.ChargeShort/S");
-  fTree->Branch("ChargeLong", &fData.ChargeLong, "fData.ChargeLong/S");
-  fTree->Branch("TimeStamp", &fData.TimeStamp, "fData.TimeStamp/l");
-  fTree->Branch("RecordLength", &fData.RecordLength, "fData.RecordLength/i");
-  fTree->Branch("WaveForm", fData.WaveForm,
-                "fData.WaveForm[fData.RecordLength]/s");
+  fTree->Branch("Ch", &fData.ChNumber, "ChNumber/b");
+  fTree->Branch("ChargeShort", &fData.ChargeShort, "ChargeShort/S");
+  fTree->Branch("ChargeLong", &fData.ChargeLong, "ChargeLong/S");
+  fTree->Branch("TimeStamp", &fData.TimeStamp, "TimeStamp/l");
+  fTree->Branch("RecordLength", &fData.RecordLength, "RecordLength/i");
+  fTree->Branch("WaveForm", fWaveForm,
+                "WaveForm[RecordLength]/s");
 
   PlotAll();
 }
@@ -84,6 +85,9 @@ void TDataTaking::FillData()
   while (fAcqFlag) {
     while (!fQueue.empty()) {
       fData = fQueue.front();
+      constexpr auto eleSize = sizeof(fWaveForm[0]);
+      memcpy(fWaveForm, fData.WaveForm, fData.RecordLength * eleSize);
+
       fTree->Fill();
       fHisADC[fData.ChNumber]->Fill(fData.ChargeLong);
 
