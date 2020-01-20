@@ -107,6 +107,8 @@ void TDigiTes::Stop() { StopAcquisition(fWDcfg); }
 
 void TDigiTes::ReadEvents()
 {
+  fDataVec->clear();
+
   CAEN_DGTZ_ErrorCode err;
 
   uint32_t bufferSize;
@@ -122,7 +124,6 @@ void TDigiTes::ReadEvents()
   // for (auto i = 0; i < 8; i++) std::cout << nEvents[i] << " hit\t";
   // std::cout << std::endl;
 
-  fDataVec->clear();
   for (uint iCh = 0; iCh < 8; iCh++) {
     for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
       err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[0], &fppPSDEvents[iCh][iEve],

@@ -12,7 +12,7 @@
 # Acquisition Mode (MIXED, LIST, OFF_LINE)
 #---------------------------------------------------------------------------------------
 AcquisitionMode               MIXED
-RecordLength                  500
+RecordLength                  1000
 PreTrigger                    100
 
 #---------------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ CoincWindow                   100
 EnableInput                   1
 PulsePolarity                 NEGATIVE
 BaselineDCoffset              10
-InputDynamicRange             0
+InputDynamicRange             1
 
 #---------------------------------------------------------------------------------------
 # Discriminator and Trigger
@@ -76,9 +76,9 @@ CFDfraction                   2
 #---------------------------------------------------------------------------------------
 # Gated Charge Integrator (DPP_PSD or DPP_CI only)
 #---------------------------------------------------------------------------------------
-GateWidth                     100
-ShortGateWidth                40
-PreGate                       50
+GateWidth                     700
+ShortGateWidth                100
+PreGate                       100
 PileUpMode                    0
 PurGap                        10
 NSBaseline                    2

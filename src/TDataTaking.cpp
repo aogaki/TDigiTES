@@ -114,7 +114,7 @@ void TDataTaking::PlotAll()
   // Sometimes mutex lock solve this problem.
   fMutex.lock();
   fCanvas->cd(1);
-  fHisADC[0]->Draw();
+  fHisADC[1]->Draw();
   fCanvas->cd(2);
   fGrWave->Draw("AL");
   fCanvas->cd();
