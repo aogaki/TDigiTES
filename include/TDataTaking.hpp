@@ -32,7 +32,7 @@ class TDataTaking
 
   std::deque<TPSDData_t> fQueue;
   TPSDData_t fData;
-  uint16_t fWaveForm[8184]; // Check the maximum
+  uint16_t fWaveForm[8184];  // Check the maximum
   std::mutex fMutex;
 
   bool fAcqFlag;
