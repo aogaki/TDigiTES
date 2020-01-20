@@ -40,3 +40,4 @@ cmake_install.cmake
 compile_commands.json
 digi
 *.root
+work.cpp

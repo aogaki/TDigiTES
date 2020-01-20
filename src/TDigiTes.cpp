@@ -32,7 +32,7 @@ void TDigiTes::LoadParameters()
   ParseConfigFile(f_ini, &fWDcfg, fSysVars);
   fclose(f_ini);
 
-  for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) fHandler[iBrd] = handle[iBrd];
+  // for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) fHandler[iBrd] = handle[iBrd];
 }
 
 void TDigiTes::InitDigitizers()
