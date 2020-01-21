@@ -22,7 +22,7 @@ void TDigiTes::LoadParameters()
   LoadSysVars(fSysVars);
 
   // auto configFileName = "digiTES_Config.txt";
-  auto configFileName = "/home/aogaki/DAQ/test/digiTES_Config.txt ";
+  auto configFileName = "/home/aogaki/DAQ/test/digiTES_Config.txt";
   std::cout << "Open the input file " << configFileName << std::endl;
   FILE *f_ini = fopen(configFileName, "r");
 
