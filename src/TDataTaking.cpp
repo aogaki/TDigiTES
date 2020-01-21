@@ -7,7 +7,7 @@
 
 TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
 {
-  fDigitizer = new TDigiTes();
+  fDigitizer = new TPSD();
   fDigitizer->LoadParameters();
   fDigitizer->OpenDigitizers();
   fDigitizer->InitDigitizers();

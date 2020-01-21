@@ -9,8 +9,7 @@
 #include <TStyle.h>
 #include <TTree.h>
 
-#include "TDigiTes.hpp"
-#include "TPSDData.hpp"
+#include "TPSD.hpp"
 
 class TDataTaking
 {
@@ -28,7 +27,8 @@ class TDataTaking
   void Terminate() { fAcqFlag = false; };
 
  private:
-  TDigiTes *fDigitizer;
+  // TDigiTes *fDigitizer;
+  TPSD *fDigitizer;
 
   std::deque<TPSDData_t> fQueue;
   TPSDData_t fData;

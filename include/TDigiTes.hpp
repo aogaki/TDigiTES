@@ -25,27 +25,21 @@ class TDigiTes
 
   void InitDigitizers();
 
-  // Memory
-  void AllocateMemory();
-  void FreeMemory();
-
   void Start();
   void Stop();
 
-  void ReadEvents();
-  std::vector<TPSDData_t> *GetData() { return fDataVec; }
+  // Memory
+  virtual void AllocateMemory() = 0;
+  virtual void FreeMemory() = 0;
 
- private:
+  virtual void ReadEvents() = 0;
+
+  // void *GetData();
+
+ protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
   SysVars_t fSysVars;  // system variables
   int fHandler[MAX_NBRD];
-
-  std::vector<TPSDData_t> *fDataVec;
-
-  // Memory
-  char *fpReadoutBuffer;                         // readout buffer
-  CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents;      // events buffer
-  CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform;  // waveforms buffer
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err, const std::string &funcName);
 };
