@@ -320,8 +320,8 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     for (b = 0; b < MAX_NBRD; b++) {
       for (i = 0; i < MAX_NCH; i++) {
         WDcfg->DCoffset[b][i] = 8000;
-        WDcfg->ACcoupling[MAX_NBRD][MAX_NCH] = 0;
-        WDcfg->ACPZcomp[MAX_NBRD][MAX_NCH] = 0x8000;
+        WDcfg->ACcoupling[b][i] = 0;
+        WDcfg->ACPZcomp[b][i] = 0x8000;
         WDcfg->BaselineDCoffset[b][i] = -1;
         WDcfg->EnableInput[b][i] = 1;
         WDcfg->TrgThreshold[b][i] = 10;
@@ -408,7 +408,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       }
     }
   }
-
+/*
   // append cfg file to _cfg.txt
   if (load_default)
     fcfg = fopen("_cfg.txt", "w");
@@ -422,6 +422,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
   }
   fclose(fcfg);
   rewind(f_ini);
+*/
 
   /* read config file and assign parameters */
   while (!feof(f_ini)) {
@@ -1135,6 +1136,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     }
   }
 
+/*
   // Load Run Number from file
   if ((jobrun < 0) && (load_default && WDcfg->AutoRunNumber)) {
     runnum = fopen("RunNumber.txt", "r");
@@ -1146,6 +1148,6 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
   runnum = fopen("RunNumber.txt", "w");
   fprintf(runnum, "%d", WDcfg->RunNumber + 1);
   fclose(runnum);
-
+*/
   return 0;
 }
