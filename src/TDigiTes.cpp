@@ -17,21 +17,16 @@ TDigiTes::~TDigiTes()
   delete fDataVec;
 };
 
-void TDigiTes::LoadParameters()
+void TDigiTes::LoadParameters(std::string fileName)
 {
   LoadSysVars(fSysVars);
 
   // auto configFileName = "digiTES_Config.txt";
-<<<<<<< HEAD
-  auto configFileName = "/home/aogaki/DAQ/test/digiTES_Config.txt";
-=======
-  auto configFileName = "/DAQ/digiTES_Config.txt";
->>>>>>> 8b7fff5f602c1ccc9b974719b474d6d3dafb5440
-  std::cout << "Open the input file " << configFileName << std::endl;
-  FILE *f_ini = fopen(configFileName, "r");
+  std::cout << "Open the input file " << fileName << std::endl;
+  FILE *f_ini = fopen(fileName.c_str(), "r");
 
   if (f_ini == NULL) {
-    std::cerr << "ERROR: Can't open configuration file " << configFileName
+    std::cerr << "ERROR: Can't open configuration file " << fileName
               << std::endl;
     exit(1);
   }
@@ -42,7 +37,7 @@ void TDigiTes::LoadParameters()
   // for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) fHandler[iBrd] = handle[iBrd];
 }
 
-void TDigiTes::InitDigitizers()
+void TDigiTes::OpenDigitizers()
 {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
@@ -53,13 +48,24 @@ void TDigiTes::InitDigitizers()
     if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;
     }
-    for (b = 0; b < fWDcfg.NumBrd; b++)
-      for (auto i = fWDcfg.NumAcqCh; i < MAX_NCH; i++)
-        fWDcfg.EnableInput[b][i] = 0;
+    for (auto i = fWDcfg.NumAcqCh; i < MAX_NCH; i++)
+      fWDcfg.EnableInput[b][i] = 0;
 
     SetTraceNames(fWDcfg);
   }
+}
 
+void TDigiTes::CloseDigitizers()
+{
+  CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
+  for (auto b = 0; b < fWDcfg.NumBrd; b++) {
+    ret = CAEN_DGTZ_CloseDigitizer(fHandler[b]);
+  }
+}
+
+void TDigiTes::InitDigitizers()
+{
+  CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     ret = (CAEN_DGTZ_ErrorCode)ProgramDigitizer(b, false, fWDcfg, fSysVars);
     if (ret) {

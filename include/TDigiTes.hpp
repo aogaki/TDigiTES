@@ -17,8 +17,11 @@ class TDigiTes
   TDigiTes();
   ~TDigiTes();
 
-  void LoadParameters();
+  void LoadParameters(std::string fileName = "digiTES_Config.txt");
   const Config_t GetParameters() { return fWDcfg; };
+
+  void OpenDigitizers();
+  void CloseDigitizers();
 
   void InitDigitizers();
 
