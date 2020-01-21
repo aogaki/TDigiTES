@@ -1,6 +1,7 @@
+#include <string.h>
+
 #include <fstream>
 #include <iostream>
-#include <string.h>
 
 #include "TDataTaking.hpp"
 
@@ -8,6 +9,7 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
 {
   fDigitizer = new TDigiTes();
   fDigitizer->LoadParameters();
+  fDigitizer->OpenDigitizers();
   fDigitizer->InitDigitizers();
   fDigitizer->AllocateMemory();
 
@@ -37,8 +39,7 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
   fTree->Branch("ChargeLong", &fData.ChargeLong, "ChargeLong/S");
   fTree->Branch("TimeStamp", &fData.TimeStamp, "TimeStamp/l");
   fTree->Branch("RecordLength", &fData.RecordLength, "RecordLength/i");
-  fTree->Branch("WaveForm", fWaveForm,
-                "WaveForm[RecordLength]/s");
+  fTree->Branch("WaveForm", fWaveForm, "WaveForm[RecordLength]/s");
 
   PlotAll();
 }
@@ -46,6 +47,7 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
 TDataTaking::~TDataTaking()
 {
   fDigitizer->FreeMemory();
+  fDigitizer->CloseDigitizers();
   delete fDigitizer;
 
   // fServer->Unregister(fHisADC);
