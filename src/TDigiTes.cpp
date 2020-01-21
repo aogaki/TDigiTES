@@ -22,7 +22,7 @@ void TDigiTes::LoadParameters()
   LoadSysVars(fSysVars);
 
   // auto configFileName = "digiTES_Config.txt";
-  auto configFileName = "/home/aogaki/DAQ/test/digiTES_Config.txt ";
+  auto configFileName = "/DAQ/digiTES_Config.txt";
   std::cout << "Open the input file " << configFileName << std::endl;
   FILE *f_ini = fopen(configFileName, "r");
 
@@ -32,6 +32,7 @@ void TDigiTes::LoadParameters()
     exit(1);
   }
   ParseConfigFile(f_ini, &fWDcfg, fSysVars);
+
   fclose(f_ini);
 
   // for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) fHandler[iBrd] = handle[iBrd];
