@@ -36,6 +36,8 @@ void TDigiTes::OpenDigitizers()
     ret = CAEN_DGTZ_OpenDigitizer((CAEN_DGTZ_ConnectionType)fWDcfg.LinkType[b],
                                   fWDcfg.LinkNum[b], fWDcfg.ConetNode[b],
                                   fWDcfg.BaseAddress[b], &fHandler[b]);
+    std::cout << fHandler[b] << "\t" << handle[b] << std::endl;
+    handle[b] = fHandler[b];
     char cstr[500];
     if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;

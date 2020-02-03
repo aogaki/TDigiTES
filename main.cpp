@@ -62,7 +62,7 @@ int testKbHit(void)
 
 int main(int argc, char *argv[])
 {
-  TApplication app("testApp", &argc, argv);
+  // TApplication app("testApp", &argc, argv);
 
   auto digitizer = new TDataTaking;
 
