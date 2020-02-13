@@ -1,5 +1,5 @@
-#ifndef TPSD_hpp
-#define TPSD_hpp 1
+#ifndef TPHA_hpp
+#define TPHA_hpp 1
 
 #include <string>
 #include <vector>
@@ -9,29 +9,29 @@
 // #include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
-#include "TPSDData.hpp"
+#include "TPHAData.hpp"
 #include "digiTES.h"
 
-class TPSD : public TDigiTes
+class TPHA : public TDigiTes
 {
  public:
-  TPSD();
-  virtual ~TPSD();
+  TPHA();
+  virtual ~TPHA();
 
   // Memory
   void AllocateMemory();
   void FreeMemory();
 
   void ReadEvents();
-  std::vector<TPSDData_t *> *GetData() { return fDataVec; }
+  std::vector<TPHAData_t *> *GetData() { return fDataVec; }
 
  private:
-  std::vector<TPSDData_t *> *fDataVec;
+  std::vector<TPHAData_t *> *fDataVec;
 
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
-  CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];      // events buffer
-  CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform[MAX_NBRD];  // waveforms buffer
+  CAEN_DGTZ_DPP_PHA_Event_t **fppPHAEvents[MAX_NBRD];      // events buffer
+  CAEN_DGTZ_DPP_PHA_Waveforms_t *fpPHAWaveform[MAX_NBRD];  // waveforms buffer
 };
 
 #endif

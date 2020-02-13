@@ -11,30 +11,19 @@
 #include <termios.h>
 
 #include <iostream>
-#include <memory>
 #include <string>
 #include <thread>
 
 #include "BoardUtils.h"
 #include "Configure.h"
 #include "Console.h"
-// #include "DataFiles.h"
-// #include "Histograms.h"
 #include "ParamParser.h"
-// #include "Plots.h"
-// #include "PreProcess.h"
-// #include "Queues.h"
-// #include "Readout.h"
-// #include "Statistics.h"
-// #include "ZCcal.h"
-#include "digiTES.h"
-// #include "fft.h"
-
 #include "TDataTaking.hpp"
 #include "TDigiTes.hpp"
 #include "TPSDData.hpp"
+#include "digiTES.h"
 
-int testKbHit(void)
+int InputCHeck(void)
 {
   struct termios oldt, newt;
   int ch;
@@ -62,19 +51,25 @@ int testKbHit(void)
 
 int main(int argc, char *argv[])
 {
-  // TApplication app("testApp", &argc, argv);
+  std::unique_ptr<TApplication> app;
 
-  auto digitizer = new TDataTaking;
+  for (auto i = 1; i < argc; i++) {
+    if (std::string(argv[i]) == "-g")
+      app.reset(new TApplication("testApp", &argc, argv));
+  }
+
+  // auto digitizer = new TDataTaking;
+  std::unique_ptr<TDataTaking> digitizer(new TDataTaking);
 
   digitizer->Start();
 
-  std::thread readDigitizer(&TDataTaking::ReadDigitizer, digitizer);
-  std::thread fillData(&TDataTaking::FillData, digitizer);
+  std::thread readDigitizer(&TDataTaking::ReadDigitizer, digitizer.get());
+  std::thread fillData(&TDataTaking::FillData, digitizer.get());
 
   while (true) {
     gSystem->ProcessEvents();  // This should be called at main thread
 
-    if (testKbHit()) {
+    if (InputCHeck()) {
       digitizer->Terminate();
       readDigitizer.join();
       fillData.join();
@@ -86,6 +81,8 @@ int main(int argc, char *argv[])
 
   digitizer->Stop();
 
-  delete digitizer;
+  // delete digitizer;
+
+  std::cout << "Finished" << std::endl;
   return 0;
 }

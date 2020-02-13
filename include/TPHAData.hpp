@@ -1,33 +1,26 @@
-#ifndef TPSDData_hpp
-#define TPSDData_hpp 1
+#ifndef TPHAData_hpp
+#define TPHAData_hpp 1
 
 #include <CAENDigitizerType.h>
 
 #include <iostream>
 
-class TPSDData
+class TPHAData
 {  // no getter setter.  using public member variables.
  public:
-  TPSDData()
-      : Trace1(nullptr),
-        Trace2(nullptr),
-        DTrace1(nullptr),
-        DTrace2(nullptr),
-        DTrace3(nullptr),
-        DTrace4(nullptr){};
+  TPHAData()
+      : Trace1(nullptr), Trace2(nullptr), DTrace1(nullptr), DTrace2(nullptr){};
 
-  TPSDData(uint32_t nSamples)
+  TPHAData(uint32_t nSamples)
   {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
     Trace2 = new uint16_t[nSamples];
     DTrace1 = new uint8_t[nSamples];
     DTrace2 = new uint8_t[nSamples];
-    DTrace3 = new uint8_t[nSamples];
-    DTrace4 = new uint8_t[nSamples];
   };
 
-  ~TPSDData()
+  ~TPHAData()
   {
     delete[] Trace1;
     Trace1 = nullptr;
@@ -37,25 +30,18 @@ class TPSDData
     DTrace1 = nullptr;
     delete[] DTrace2;
     DTrace2 = nullptr;
-    delete[] DTrace3;
-    DTrace3 = nullptr;
-    delete[] DTrace4;
-    DTrace4 = nullptr;
   };
 
   unsigned char ModNumber;
   unsigned char ChNumber;
   uint64_t TimeStamp;
-  int16_t ChargeShort;
-  int16_t ChargeLong;
+  int16_t Energy;
   uint32_t RecordLength;
   uint16_t *Trace1;
   uint16_t *Trace2;
   uint8_t *DTrace1;
   uint8_t *DTrace2;
-  uint8_t *DTrace3;
-  uint8_t *DTrace4;
 };
-typedef TPSDData TPSDData_t;
+typedef TPHAData TPHAData_t;
 
 #endif

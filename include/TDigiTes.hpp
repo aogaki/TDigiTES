@@ -15,7 +15,7 @@ class TDigiTes
 {
  public:
   TDigiTes();
-  ~TDigiTes();
+  virtual ~TDigiTes();
 
   void LoadParameters(std::string fileName = "digiTES_Config.txt");
   const Config_t GetParameters() { return fWDcfg; };
