@@ -35,7 +35,7 @@ class TPHAData
   unsigned char ModNumber;
   unsigned char ChNumber;
   uint64_t TimeStamp;
-  int16_t Energy;
+  uint16_t Energy;
   uint32_t RecordLength;
   uint16_t *Trace1;
   uint16_t *Trace2;
