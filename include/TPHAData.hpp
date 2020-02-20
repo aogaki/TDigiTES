@@ -42,7 +42,11 @@ class PHAData
   uint8_t *DTrace1;
   uint8_t *DTrace2;
 };
+<<<<<<< HEAD
 typedef PHAData PHAData_t;
+=======
+typedef PHAData TPHAData_t;
+>>>>>>> 9b53760f20309040d13947e26632bb4cda938284
 
 class NoTracePHAData
 {  // no getter setter.  using public member variables.
