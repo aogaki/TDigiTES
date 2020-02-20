@@ -5,13 +5,13 @@
 
 #include <iostream>
 
-class TPHAData
+class PHAData
 {  // no getter setter.  using public member variables.
  public:
-  TPHAData()
+  PHAData()
       : Trace1(nullptr), Trace2(nullptr), DTrace1(nullptr), DTrace2(nullptr){};
 
-  TPHAData(uint32_t nSamples)
+  PHAData(uint32_t nSamples)
   {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
@@ -20,7 +20,7 @@ class TPHAData
     DTrace2 = new uint8_t[nSamples];
   };
 
-  ~TPHAData()
+  ~PHAData()
   {
     delete[] Trace1;
     Trace1 = nullptr;
@@ -42,6 +42,22 @@ class TPHAData
   uint8_t *DTrace1;
   uint8_t *DTrace2;
 };
-typedef TPHAData TPHAData_t;
+typedef PHAData TPHAData_t;
+
+class NoTracePHAData
+{  // no getter setter.  using public member variables.
+ public:
+  NoTracePHAData(){};
+
+  NoTracePHAData(uint32_t nSamples){};
+
+  ~NoTracePHAData(){};
+
+  unsigned char ModNumber;
+  unsigned char ChNumber;
+  uint64_t TimeStamp;
+  uint16_t Energy;
+};
+typedef NoTracePHAData NoTracePHAData_t;
 
 #endif
