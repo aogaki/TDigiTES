@@ -13,7 +13,7 @@ TPHA::TPHA()
     fppPHAEvents[iBrd] = nullptr;
   }
 
-  fDataVec = new std::vector<TPHAData_t *>;
+  fDataVec = new std::vector<PHAData_t *>;
 };
 
 TPHA::~TPHA()
@@ -99,7 +99,7 @@ void TPHA::ReadEvents()
             ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
              << 31);
 
-        auto data = new TPHAData(fpPHAWaveform[iBrd]->Ns);
+        auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
         data->TimeStamp = tdc;

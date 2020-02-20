@@ -23,10 +23,10 @@ class TPHA : public TDigiTes
   void FreeMemory();
 
   void ReadEvents();
-  std::vector<TPHAData_t *> *GetData() { return fDataVec; }
+  std::vector<PHAData_t *> *GetData() { return fDataVec; }
 
  private:
-  std::vector<TPHAData_t *> *fDataVec;
+  std::vector<PHAData_t *> *fDataVec;
 
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
