@@ -19,6 +19,7 @@ TPHA::TPHA()
 TPHA::~TPHA()
 {
   FreeMemory();
+  for (auto &&ele : *fDataVec) delete ele;
   delete fDataVec;
 };
 
@@ -68,6 +69,7 @@ void TPHA::FreeMemory()
 
 void TPHA::ReadEvents()
 {
+  for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_ErrorCode err;

@@ -22,6 +22,8 @@ class TPHA : public TDigiTes
   void AllocateMemory();
   void FreeMemory();
 
+  // In the ReadEvents, all elements of fDataVec are deleted.
+  // After calling GetData, you have to copy or use the data before deleteing.
   void ReadEvents();
   std::vector<PHAData_t *> *GetData() { return fDataVec; }
 

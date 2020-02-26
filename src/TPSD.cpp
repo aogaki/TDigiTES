@@ -19,6 +19,7 @@ TPSD::TPSD()
 TPSD::~TPSD()
 {
   FreeMemory();
+  for (auto &&ele : *fDataVec) delete ele;
   delete fDataVec;
 };
 
@@ -68,6 +69,7 @@ void TPSD::FreeMemory()
 
 void TPSD::ReadEvents()
 {
+  for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_ErrorCode err;
