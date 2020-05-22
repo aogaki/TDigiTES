@@ -106,7 +106,7 @@ void TPHA::ReadEvents()
         data->ChNumber = iCh;
         data->TimeStamp = tdc;
         data->Energy = fppPHAEvents[iBrd][iCh][iEve].Energy;
-        // data->RecordLength = fpPHAWaveform[iBrd]->Ns;
+        data->RecordLength = fpPHAWaveform[iBrd]->Ns;
 
         constexpr auto eleSizeShort = sizeof(*data->Trace1);
         memcpy(data->Trace1, fpPHAWaveform[iBrd]->Trace1,

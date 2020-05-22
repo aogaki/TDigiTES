@@ -107,7 +107,7 @@ void TPSD::ReadEvents()
         data->TimeStamp = tdc;
         data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
         data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
-        // data->RecordLength = fpPSDWaveform[iBrd]->Ns;
+        data->RecordLength = fpPSDWaveform[iBrd]->Ns;
 
         constexpr auto eleSizeShort = sizeof(*data->Trace1);
         memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,

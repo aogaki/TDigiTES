@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+#include "ErrorCodeMap.hpp"
 #include "TDigiTes.hpp"
 
 TDigiTes::TDigiTes(){};
@@ -62,7 +63,7 @@ void TDigiTes::InitDigitizers()
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     ret = (CAEN_DGTZ_ErrorCode)ProgramDigitizer(b, false, fWDcfg, fSysVars);
-    if (ret) {
+    if (ret != CAEN_DGTZ_Success) {
       std::cout << "ERROR: Failed to program the digitizer" << std::endl;
       exit(1);
     }
@@ -75,11 +76,12 @@ void TDigiTes::Start() { StartAcquisition(fWDcfg); }
 void TDigiTes::Stop() { StopAcquisition(fWDcfg); }
 
 void TDigiTes::PrintError(const CAEN_DGTZ_ErrorCode &err,
-                          const std::string &funcName)
+                          const std::string &funcName) const
 {
   // if (true) {  // 0 is success
   if (err < 0) {  // 0 is success
-    std::cout << "In " << funcName << ", error code = " << err << std::endl;
+    std::cout << "In " << funcName << ", error code = " << err << ", "
+              << ErrorCodeMap[err] << std::endl;
     // CAEN_DGTZ_CloseDigitizer(fHandler);
     // throw err;
   }

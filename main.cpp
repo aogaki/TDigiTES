@@ -20,6 +20,7 @@
 #include "ParamParser.h"
 #include "TDataTaking.hpp"
 #include "TDigiTes.hpp"
+#include "TPSD.hpp"
 #include "TPSDData.hpp"
 #include "digiTES.h"
 
@@ -49,40 +50,77 @@ int InputCHeck(void)
   return 0;
 }
 
+/* Only display the number of hit */
 int main(int argc, char *argv[])
 {
-  std::unique_ptr<TApplication> app;
-
-  for (auto i = 1; i < argc; i++) {
-    if (std::string(argv[i]) == "-g")
-      app.reset(new TApplication("testApp", &argc, argv));
-  }
+  std::unique_ptr<TApplication> app(new TApplication("testApp", &argc, argv));
 
   // auto digitizer = new TDataTaking;
-  std::unique_ptr<TDataTaking> digitizer(new TDataTaking);
+  std::unique_ptr<TPSD> digitizer(new TPSD);
+
+  digitizer->LoadParameters("PSD.conf");
+  digitizer->OpenDigitizers();
+  digitizer->InitDigitizers();
+  digitizer->AllocateMemory();
 
   digitizer->Start();
 
-  std::thread readDigitizer(&TDataTaking::ReadDigitizer, digitizer.get());
-  std::thread fillData(&TDataTaking::FillData, digitizer.get());
-
   while (true) {
-    gSystem->ProcessEvents();  // This should be called at main thread
+    digitizer->ReadEvents();
+    auto data = digitizer->GetData();
+
+    std::cout << data->size() << std::endl;
 
     if (InputCHeck()) {
-      digitizer->Terminate();
-      readDigitizer.join();
-      fillData.join();
       break;
     }
-
     usleep(1000);
   }
 
   digitizer->Stop();
 
-  // delete digitizer;
+  digitizer->FreeMemory();
+  digitizer->CloseDigitizers();
 
   std::cout << "Finished" << std::endl;
   return 0;
 }
+
+// /* Real data taking example */
+// int main(int argc, char *argv[])
+// {
+//   std::unique_ptr<TApplication> app;
+//
+//   for (auto i = 1; i < argc; i++) {
+//     if (std::string(argv[i]) == "-g")
+//       app.reset(new TApplication("testApp", &argc, argv));
+//   }
+//
+//   // auto digitizer = new TDataTaking;
+//   std::unique_ptr<TDataTaking> digitizer(new TDataTaking);
+//
+//   digitizer->Start();
+//
+//   std::thread readDigitizer(&TDataTaking::ReadDigitizer, digitizer.get());
+//   std::thread fillData(&TDataTaking::FillData, digitizer.get());
+//
+//   while (true) {
+//     gSystem->ProcessEvents();  // This should be called at main thread
+//
+//     if (InputCHeck()) {
+//       digitizer->Terminate();
+//       readDigitizer.join();
+//       fillData.join();
+//       break;
+//     }
+//
+//     usleep(1000);
+//   }
+//
+//   digitizer->Stop();
+//
+//   // delete digitizer;
+//
+//   std::cout << "Finished" << std::endl;
+//   return 0;
+// }

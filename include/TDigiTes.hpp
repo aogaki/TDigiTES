@@ -41,7 +41,8 @@ class TDigiTes
   SysVars_t fSysVars;  // system variables
   int fHandler[MAX_NBRD];
 
-  void PrintError(const CAEN_DGTZ_ErrorCode &err, const std::string &funcName);
+  void PrintError(const CAEN_DGTZ_ErrorCode &err,
+                  const std::string &funcName = "") const;
 };
 
 #endif
