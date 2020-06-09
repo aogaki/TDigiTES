@@ -55,12 +55,12 @@ void TPHA::FreeMemory()
       fpReadoutBuffer[iBrd] = nullptr;
     }
     if (fppPHAEvents[iBrd] != nullptr) {
-      err = CAEN_DGTZ_FreeDPPEvents(fHandler[0], (void **)(fppPHAEvents[iBrd]));
+      err = CAEN_DGTZ_FreeDPPEvents(fHandler[iBrd], (void **)(fppPHAEvents[iBrd]));
       PrintError(err, "FreeDPPEvents");
       fppPHAEvents[iBrd] = nullptr;
     }
     if (fpPHAWaveform[iBrd] != nullptr) {
-      err = CAEN_DGTZ_FreeDPPWaveforms(fHandler[0], fpPHAWaveform[iBrd]);
+      err = CAEN_DGTZ_FreeDPPWaveforms(fHandler[iBrd], fpPHAWaveform[iBrd]);
       PrintError(err, "FreeDPPWaveforms");
       fpPHAWaveform[iBrd] = nullptr;
     }
