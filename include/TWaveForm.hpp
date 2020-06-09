@@ -29,9 +29,9 @@ class TWaveForm : public TDigiTes
   std::vector<TPSDData_t *> *fDataVec;
 
   // Memory
-  char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
-  CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];      // events buffer
-  CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform[MAX_NBRD];  // waveforms buffer
+  char *fpReadoutBuffer[MAX_NBRD];                     // readout buffer
+  CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];  // events buffer
+  CAEN_DGTZ_UINT16_EVENT_t *fpEventStd[MAX_NBRD];      // events buffer
 };
 
 #endif
