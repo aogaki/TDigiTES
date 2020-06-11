@@ -14,14 +14,14 @@ TPSD::TPSD()
   }
 
   fDataVec = new std::vector<TPSDData_t *>;
-};
+}
 
 TPSD::~TPSD()
 {
   FreeMemory();
   for (auto &&ele : *fDataVec) delete ele;
   delete fDataVec;
-};
+}
 
 void TPSD::AllocateMemory()
 {
@@ -47,6 +47,8 @@ void TPSD::AllocateMemory()
 
 void TPSD::FreeMemory()
 {
+  // In digiTes, fppPSDEvents is not the array.
+  // I have to check the double freeing memory
   CAEN_DGTZ_ErrorCode err;
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     if (fpReadoutBuffer[iBrd] != nullptr) {

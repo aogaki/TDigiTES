@@ -22,10 +22,10 @@
 #include "TDigiTes.hpp"
 #include "TPSD.hpp"
 #include "TPSDData.hpp"
+#include "TWaveForm.hpp"
 #include "digiTES.h"
 
-int InputCHeck(void)
-{
+int InputCHeck(void) {
   struct termios oldt, newt;
   int ch;
   int oldf;
@@ -51,20 +51,22 @@ int InputCHeck(void)
 }
 
 /* Only display the number of hit */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   std::unique_ptr<TApplication> app(new TApplication("testApp", &argc, argv));
 
   // auto digitizer = new TDataTaking;
-  std::unique_ptr<TPSD> digitizer(new TPSD);
+  // std::unique_ptr<TPSD> digitizer(new TPSD);
+  std::unique_ptr<TWaveForm> digitizer(new TWaveForm);
 
-  digitizer->LoadParameters("PSD.conf");
+  // digitizer->LoadParameters("PSD.conf");
+  digitizer->LoadParameters();
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
   digitizer->AllocateMemory();
 
   digitizer->Start();
 
+  int counter = 0;
   while (true) {
     digitizer->ReadEvents();
     auto data = digitizer->GetData();
@@ -74,6 +76,9 @@ int main(int argc, char *argv[])
     if (InputCHeck()) {
       break;
     }
+    if (counter++ > 10)
+      break;
+
     usleep(1000);
   }
 

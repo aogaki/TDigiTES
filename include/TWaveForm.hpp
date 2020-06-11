@@ -9,12 +9,11 @@
 // #include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
-#include "TPSDData.hpp"
+#include "TWaveFormData.hpp"
 #include "digiTES.h"
 
-class TWaveForm : public TDigiTes
-{
- public:
+class TWaveForm : public TDigiTes {
+public:
   TWaveForm();
   virtual ~TWaveForm();
 
@@ -23,15 +22,18 @@ class TWaveForm : public TDigiTes
   void FreeMemory();
 
   void ReadEvents();
-  std::vector<TPSDData_t *> *GetData() { return fDataVec; }
+  std::vector<WaveFormData_t *> *GetData() { return fDataVec; }
 
- private:
-  std::vector<TPSDData_t *> *fDataVec;
+private:
+  std::vector<WaveFormData_t *> *fDataVec;
 
   // Memory
-  char *fpReadoutBuffer[MAX_NBRD];                     // readout buffer
-  CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];  // events buffer
-  CAEN_DGTZ_UINT16_EVENT_t *fpEventStd[MAX_NBRD];      // events buffer
+  char *fpReadoutBuffer[MAX_NBRD];      // readout buffer
+  CAEN_DGTZ_UINT16_EVENT_t *fpEventStd; // events buffer
+
+  // time stamp
+  uint64_t fTimeOffset;
+  uint64_t fPreviousTime;
 };
 
 #endif
