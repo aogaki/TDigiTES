@@ -36,11 +36,6 @@ void TWaveForm::AllocateMemory() {
 void TWaveForm::FreeMemory() {
   CAEN_DGTZ_ErrorCode err;
 
-  if (fpEventStd != nullptr)
-    err = CAEN_DGTZ_FreeEvent(handle[0], (void **)&fpEventStd);
-  fpEventStd = nullptr;
-  PrintError(err, "FreeEvent");
-
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     if (fpReadoutBuffer[iBrd] != nullptr) {
       err = CAEN_DGTZ_FreeReadoutBuffer(&(fpReadoutBuffer[iBrd]));
@@ -51,7 +46,6 @@ void TWaveForm::FreeMemory() {
 };
 
 void TWaveForm::ReadEvents() {
-  std::cout << "ReadEvents" << std::endl;
   for (auto &&ele : *fDataVec)
     delete ele;
   fDataVec->clear();
@@ -98,23 +92,27 @@ void TWaveForm::ReadEvents() {
       }
       fPreviousTime = timeStamp;
 
-      std::cout << "Ch mask: " << fChMask[iBrd] << std::endl;
-
       for (uint32_t iCh = 0; iCh < 8; iCh++) {
-        // if (!((fChMask[iBrd] >> iCh) & 0x1))
-        //   continue;
+        if (!((fChMask[iBrd] >> iCh) & 0x1))
+          continue;
 
-        WaveFormData_t *dataEle = new TWaveFormData(fpEventStd->ChSize[iCh]);
+        const uint16_t size = fpEventStd->ChSize[iCh];
+        WaveFormData_t *dataEle = new TWaveFormData(size);
         dataEle->ModNumber = iBrd;
         dataEle->ChNumber = iCh;
         dataEle->TimeStamp = timeStamp;
-        dataEle->RecordLength = fpEventStd->ChSize[iCh];
-        // dataEle->Trace1 = fpEventStd->DataChannel[iCh];
+        dataEle->RecordLength = size;
         std::memcpy(dataEle->Trace1, fpEventStd->DataChannel[iCh],
-                    fpEventStd->ChSize[iCh]);
+                    fpEventStd->ChSize[iCh] *
+                        sizeof(fpEventStd->DataChannel[iCh][0]));
 
         fDataVec->push_back(dataEle);
       }
+
+      if (fpEventStd != nullptr)
+        err = CAEN_DGTZ_FreeEvent(handle[iBrd], (void **)&fpEventStd);
+      fpEventStd = nullptr;
+      PrintError(err, "FreeEvent");
     }
   }
 };
