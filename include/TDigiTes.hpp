@@ -1,11 +1,11 @@
 #ifndef TDigiTes_hpp
 #define TDigiTes_hpp 1
 
-#include <string>
-#include <vector>
-
 #include <CAENDigitizer.h>
 #include <CAENDigitizerType.h>
+
+#include <string>
+#include <vector>
 
 #include "BoardUtils.h"
 #include "Configure.h"
@@ -19,12 +19,13 @@ enum class FirmWareCode {
   // Its are not same as CAENDigitizerType.h
   DPP_PSD,
   DPP_PHA,
-  DPP_ChInt, // DPP_CI is already used by digiTes
+  DPP_ChInt,  // DPP_CI is already used by digiTes
   STD,
 };
 
-class TDigiTes {
-public:
+class TDigiTes
+{
+ public:
   TDigiTes();
   virtual ~TDigiTes();
 
@@ -39,6 +40,8 @@ public:
   void Start();
   void Stop();
 
+  void SendSWTrigger();
+
   // Memory
   virtual void AllocateMemory() = 0;
   virtual void FreeMemory() = 0;
@@ -47,18 +50,18 @@ public:
 
   // void *GetData();
 
-protected:
-  Config_t fWDcfg;    // acquisition parameters and user settings
-  SysVars_t fSysVars; // system variables
+ protected:
+  Config_t fWDcfg;     // acquisition parameters and user settings
+  SysVars_t fSysVars;  // system variables
   int fHandler[MAX_NBRD];
   uint32_t fChMask[MAX_NBRD];
 
   void GetBoardInfo();
-  int fTSample[MAX_NBRD]; // We need only this time sample information
+  int fTSample[MAX_NBRD];  // We need only this time sample information
   int fDigitizerModel;
   FirmWareCode fFirmware;
   uint32_t fNChs;
-  int fNBits; // ADC, Waveform resolution
+  int fNBits;  // ADC, Waveform resolution
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;

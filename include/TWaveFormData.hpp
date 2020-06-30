@@ -5,16 +5,19 @@
 
 #include <iostream>
 
-class TWaveFormData { // no getter setter.  using public member variables.
-public:
+class TWaveFormData
+{  // no getter setter.  using public member variables.
+ public:
   TWaveFormData() : Trace1(nullptr){};
 
-  TWaveFormData(uint32_t nSamples) {
+  TWaveFormData(uint32_t nSamples)
+  {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
   };
 
-  ~TWaveFormData() {
+  ~TWaveFormData()
+  {
     delete[] Trace1;
     Trace1 = nullptr;
   };

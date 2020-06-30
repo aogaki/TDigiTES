@@ -6,7 +6,8 @@
 
 #include "TWaveForm.hpp"
 
-TWaveForm::TWaveForm() : fpEventStd(nullptr), fTimeOffset(0), fPreviousTime(0) {
+TWaveForm::TWaveForm() : fpEventStd(nullptr), fTimeOffset(0), fPreviousTime(0)
+{
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     fpReadoutBuffer[iBrd] = nullptr;
   }
@@ -14,7 +15,8 @@ TWaveForm::TWaveForm() : fpEventStd(nullptr), fTimeOffset(0), fPreviousTime(0) {
   fDataVec = new std::vector<WaveFormData_t *>;
 }
 
-TWaveForm::~TWaveForm() {
+TWaveForm::~TWaveForm()
+{
   FreeMemory();
   for (auto &&ele : *fDataVec) {
     delete ele;
@@ -22,36 +24,55 @@ TWaveForm::~TWaveForm() {
   delete fDataVec;
 }
 
-void TWaveForm::AllocateMemory() {
+void TWaveForm::AllocateMemory()
+{
   CAEN_DGTZ_ErrorCode err;
   uint32_t size;
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    // HACK: workaround to prevent memory allocation bug in the library:
+    // allocate for all channels
+    uint32_t EnableMask;
+    CAEN_DGTZ_GetChannelEnableMask(fHandler[iBrd], &EnableMask);
+    CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8120, 0xFFFF);
     err = CAEN_DGTZ_MallocReadoutBuffer(fHandler[iBrd],
                                         &(fpReadoutBuffer[iBrd]), &size);
     PrintError(err, "MallocReadoutBuffer");
+    CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8120, EnableMask);
+    CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8120, EnableMask);
+  }
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    err = CAEN_DGTZ_AllocateEvent(fHandler[iBrd], (void **)&fpEventStd);
+    PrintError(err, "AllocateEvent");
   }
 }
 
-void TWaveForm::FreeMemory() {
+void TWaveForm::FreeMemory()
+{
   CAEN_DGTZ_ErrorCode err;
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     if (fpReadoutBuffer[iBrd] != nullptr) {
       err = CAEN_DGTZ_FreeReadoutBuffer(&(fpReadoutBuffer[iBrd]));
-      PrintError(err, "FreeReadoutBuffer");
       fpReadoutBuffer[iBrd] = nullptr;
+      PrintError(err, "FreeReadoutBuffer");
+      err = CAEN_DGTZ_FreeEvent(fHandler[iBrd], (void **)&fpEventStd);
+      PrintError(err, "FreeEvent");
     }
   }
 };
 
-void TWaveForm::ReadEvents() {
-  for (auto &&ele : *fDataVec)
-    delete ele;
+void TWaveForm::ReadEvents()
+{
+  for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_EventInfo_t eventInfo;
   char *pEventPtr;
+
+  uint32_t tmp = 0;
+  CAEN_DGTZ_GetRecordLength(fHandler[0], &tmp);
+  std::cout << tmp << std::endl;
 
   CAEN_DGTZ_ErrorCode err;
   uint32_t bufferSize;
@@ -86,33 +107,29 @@ void TWaveForm::ReadEvents() {
       uint64_t timeStamp =
           (eventInfo.TriggerTimeTag + fTimeOffset) * fTSample[iBrd];
       if (timeStamp < fPreviousTime) {
-        constexpr uint32_t maxTime = 0xFFFFFFFF / 2; // Check manual
+        constexpr uint32_t maxTime = 0xFFFFFFFF / 2;  // Check manual
         timeStamp += maxTime * fTSample[iBrd];
         fTimeOffset += maxTime;
       }
       fPreviousTime = timeStamp;
 
       for (uint32_t iCh = 0; iCh < 8; iCh++) {
-        if (!((fChMask[iBrd] >> iCh) & 0x1))
-          continue;
+        if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
 
-        const uint16_t size = fpEventStd->ChSize[iCh];
+        // const uint16_t size = CAEN_DGTZ_GetRecordLength(fHandler[iBrd], &tmp);
+        const uint32_t size = fpEventStd->ChSize[iCh];
+        std::cout << size << std::endl;
         WaveFormData_t *dataEle = new TWaveFormData(size);
         dataEle->ModNumber = iBrd;
         dataEle->ChNumber = iCh;
         dataEle->TimeStamp = timeStamp;
         dataEle->RecordLength = size;
+        constexpr auto eleSizeShort = sizeof(*fpEventStd->DataChannel[iCh]);
         std::memcpy(dataEle->Trace1, fpEventStd->DataChannel[iCh],
-                    fpEventStd->ChSize[iCh] *
-                        sizeof(fpEventStd->DataChannel[iCh][0]));
+                    size * eleSizeShort);
 
         fDataVec->push_back(dataEle);
       }
-
-      if (fpEventStd != nullptr)
-        err = CAEN_DGTZ_FreeEvent(handle[iBrd], (void **)&fpEventStd);
-      fpEventStd = nullptr;
-      PrintError(err, "FreeEvent");
     }
   }
 };
