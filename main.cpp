@@ -1,9 +1,4 @@
 #include <CAENDigitizer.h>
-#include <TApplication.h>
-#include <TCanvas.h>
-#include <TGraph.h>
-#include <TH1.h>
-#include <TSystem.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -22,7 +17,7 @@
 #include "TDigiTes.hpp"
 #include "TPSD.hpp"
 #include "TPSDData.hpp"
-#include "TWaveForm.hpp"
+#include "TWaveform.hpp"
 #include "digiTES.h"
 
 int InputCHeck(void)
@@ -54,25 +49,8 @@ int InputCHeck(void)
 /* Only display the number of hit */
 int main(int argc, char *argv[])
 {
-  std::unique_ptr<TApplication> app(new TApplication("testApp", &argc, argv));
+  std::unique_ptr<TWaveform> digitizer(new TWaveform);
 
-  // std::unique_ptr<TCanvas> canv(new TCanvas("canv", "test", 1600, 800));
-  // canv->Divide(4, 2);
-  //
-  // constexpr int nGraphs = 8;
-  // std::array<std::unique_ptr<TGraph>, nGraphs> grWave;
-  // for (auto i = 0; i < nGraphs; i++) {
-  //   grWave[i].reset(new TGraph);
-  //   grWave[i]->SetTitle(Form("ch%02d", i));
-  //   grWave[i]->SetMaximum(20000);
-  //   grWave[i]->SetMinimum(0);
-  // }
-
-  // auto digitizer = new TDataTaking;
-  // std::unique_ptr<TPSD> digitizer(new TPSD);
-  std::unique_ptr<TWaveForm> digitizer(new TWaveForm);
-
-  // digitizer->LoadParameters("PSD.conf");
   digitizer->LoadParameters();
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
@@ -80,36 +58,24 @@ int main(int argc, char *argv[])
 
   digitizer->Start();
 
-  int counter = 0;
   while (true) {
-    digitizer->SendSWTrigger();
+    for (auto i = 0; i < 10; i++) digitizer->SendSWTrigger();
     digitizer->ReadEvents();
     auto data = digitizer->GetData();
 
     auto nData = data->size();
     std::cout << nData << " hits" << std::endl;
     for (auto i = 0; i < nData; i++) {
+      // something
       auto ch = data->at(i)->ChNumber;
       auto nPoints = data->at(i)->RecordLength;
-      std::cout << nPoints << " points, " << nPoints * 2 / 1000. / 1000.
-                << std::endl;
-      // for (auto iPoint = 0; iPoint < nPoints; iPoint++)
-      // grWave[ch]->SetPoint(iPoint, iPoint * 2, data->at(i)->Trace1[iPoint]);
     }
-    /*
-        for (auto iGr = 0; iGr < nGraphs; iGr++) {
-          canv->cd(iGr + 1);
-          if (grWave[iGr]->GetN() > 1)
-            grWave[iGr]->Draw();
-        }
-        canv->Update();
-    */
+
     if (InputCHeck()) {
       break;
     }
-    // if (counter++ > 10)
-    //   break;
-    usleep(1000000);
+
+    usleep(1000);
   }
 
   digitizer->Stop();

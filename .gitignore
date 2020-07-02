@@ -39,5 +39,6 @@ _cfg.txt
 cmake_install.cmake
 compile_commands.json
 digi
+longRecord
 *.root
 work.cpp

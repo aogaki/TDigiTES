@@ -1,22 +1,22 @@
-#ifndef TWaveFormData_hpp
-#define TWaveFormData_hpp 1
+#ifndef TWaveformData_hpp
+#define TWaveformData_hpp 1
 
 #include <CAENDigitizerType.h>
 
 #include <iostream>
 
-class TWaveFormData
+class TWaveformData
 {  // no getter setter.  using public member variables.
  public:
-  TWaveFormData() : Trace1(nullptr){};
+  TWaveformData() : Trace1(nullptr){};
 
-  TWaveFormData(uint32_t nSamples)
+  TWaveformData(uint32_t nSamples)
   {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
   };
 
-  ~TWaveFormData()
+  ~TWaveformData()
   {
     delete[] Trace1;
     Trace1 = nullptr;
@@ -28,6 +28,6 @@ class TWaveFormData
   uint32_t RecordLength;
   uint16_t *Trace1;
 };
-typedef TWaveFormData WaveFormData_t;
+typedef TWaveformData WaveformData_t;
 
 #endif

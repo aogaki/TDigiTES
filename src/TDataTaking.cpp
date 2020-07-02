@@ -7,10 +7,9 @@
 #include "TDataTaking.hpp"
 // #include "TPHA.h"
 
-TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
+TDataTaking::TDataTaking() : fAcqFlag(true), fDataTakingFlag(true)
 {
-  fDigitizer.reset(new TPSD());
-  // fDigitizer.reset(new TPHA());
+  fDigitizer.reset(new TWaveform());
   fDigitizer->LoadParameters();
   fDigitizer->OpenDigitizers();
   fDigitizer->InitDigitizers();
@@ -20,61 +19,44 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fFillCounter(0)
 
   // Something from ROOT
   gStyle->SetOptFit(1111);
-  for (auto i = 0; i < 8; i++)
-    fHisADC[i] = new TH1D(Form("hisADC%d", i), "Flux check", 33000, 0, 33000);
 
-  fCanvas = new TCanvas("flux", "Flux check", 1600, 600);
-  fCanvas->Divide(2, 1);
-  fCanvas->cd(2)->SetGrid(kTRUE, kTRUE);
-  fCanvas->cd();
+  // fServer.reset(new THttpServer("http:8888"));
+  fServer = new THttpServer("http:8888;noglobal");
+  fServer->SetItemField("/", "_monitoring", "1000");
 
-  fGrWave = new TGraph();
+  for (auto iMod = 0; iMod < nMod; iMod++) {
+    for (auto iCh = 0; iCh < nCh; iCh++) {
+      fGraph[iMod][iCh] = new TGraph();
+      fGraph[iMod][iCh]->SetMaximum(20000);
+      fGraph[iMod][iCh]->SetMinimum(0);
+      fGraph[iMod][iCh]->SetTitle(
+          Form("WaveformMod%02dCh%02d;[ms]", iMod, iCh));
 
-  fGrDTrace1 = new TGraph();
-  fGrDTrace1->SetLineColor(kRed);
-  fGrDTrace1->SetFillColor(kRed);
-  fGrDTrace1->SetFillStyle(3004);
+      fCanvas[iMod][iCh] =
+          new TCanvas(Form("CanvasMod%02dCh%02d", iMod, iCh), "plot");
 
-  fGrDTrace2 = new TGraph();
-  fGrDTrace2->SetLineColor(kBlue);
-  fGrDTrace2->SetFillColor(kBlue);
-  fGrDTrace2->SetFillStyle(3005);
-
-  for (uint iSample = 0; iSample < par.RecordLength; iSample++) {
-    fGrWave->SetPoint(iSample, iSample * fTimeSample, 8000);
-    fGrDTrace1->SetPoint(iSample, iSample * fTimeSample, 8000);
-    fGrDTrace2->SetPoint(iSample, iSample * fTimeSample, 8000);
+      fServer->Register(Form("Mod%d", iMod), fCanvas[iMod][iCh]);
+    }
   }
-  fGrWave->SetMaximum(20000);
-  fGrWave->SetMinimum(0);
 
-  fServer.reset(new THttpServer("http:8888"));
+  fTree.reset(new TTree("data", "detector waveform"));
+  fTree->Branch("Mod", &(fModNumber), "ModNumber/b");
+  fTree->Branch("Ch", &(fChNumber), "ChNumber/b");
+  fTree->Branch("TimeStamp", &(fTimeStamp), "TimeStamp/l");
+  fTree->Branch("RecordLength", &(fRecordLength), "RecordLength/i");
+  fRecordLength = par.RecordLength;
+  fTrace1.resize(fRecordLength);
+  fTree->Branch("Waveform", &fTrace1[0], "Waveform[RecordLength]/s");
 
-  fData.reset(new TPSDData(8192));  // 8192 has no reason.  Just big buffer
-  fTree = new TTree("data", "Neutron detector test");
-  fTree->Branch("Ch", &(fData->ChNumber), "ChNumber/b");
-  fTree->Branch("ChargeShort", &(fData->ChargeShort), "ChargeShort/S");
-  fTree->Branch("ChargeLong", &(fData->ChargeLong), "ChargeLong/S");
-  fTree->Branch("TimeStamp", &(fData->TimeStamp), "TimeStamp/l");
-  fTree->Branch("RecordLength", &(fData->RecordLength), "RecordLength/i");
-  fTree->Branch("WaveForm", fData->Trace1, "WaveForm[RecordLength]/s");
-  fTree->Branch("Trace2", fData->Trace2, "Trace2[RecordLength]/s");
-  fTree->Branch("DTrace1", fData->DTrace1, "DTrace1[RecordLength]/b");
-  fTree->Branch("DTrace2", fData->DTrace2, "DTrace2[RecordLength]/b");
-  fTree->Branch("DTrace3", fData->DTrace3, "DTrace3[RecordLength]/b");
-  fTree->Branch("DTrace4", fData->DTrace4, "DTrace4[RecordLength]/b");
-
-  // fData.reset(new TPHAData(8192));  // 8192 has no reason.  Just big buffer
-  // fTree = new TTree("data", "Neutron detector test");
-  // fTree->Branch("Ch", &(fData->ChNumber), "ChNumber/b");
-  // fTree->Branch("Energy", &(fData->Energy), "Energy/S");
-  // fTree->Branch("TimeStamp", &(fData->TimeStamp), "TimeStamp/l");
-  // fTree->Branch("RecordLength", &(fData->RecordLength), "RecordLength/i");
-  // fTree->Branch("WaveForm", fData->Trace1, "WaveForm[RecordLength]/s");
-  // fTree->Branch("Trace2", fData->Trace2, "Trace2[RecordLength]/s");
-  // fTree->Branch("DTrace1", fData->DTrace1, "DTrace1[RecordLength]/b");
-  // fTree->Branch("DTrace2", fData->DTrace2, "DTrace2[RecordLength]/b");
-
+  for (auto iMod = 0; iMod < nMod; iMod++) {
+    for (auto iCh = 0; iCh < nCh; iCh++) {
+      for (uint iSample = 0; iSample < fRecordLength; iSample++) {
+        fGraph[iMod][iCh]->SetPoint(iSample, iSample * fTimeSample, 0);
+      }
+      fCanvas[iMod][iCh]->cd();
+      fGraph[iMod][iCh]->Draw("AL");
+    }
+  }
   PlotAll();
 }
 
@@ -84,23 +66,29 @@ TDataTaking::~TDataTaking()
   fDigitizer->FreeMemory();
   fDigitizer->CloseDigitizers();
 
-  delete fCanvas;
-  // delete fHisADC;
-  for (auto &&his : fHisADC) delete his;
-  delete fGrWave;
-  delete fGrDTrace1;
-  delete fGrDTrace2;
+  for (auto iMod = 0; iMod < nMod; iMod++) {
+    for (auto iCh = 0; iCh < nCh; iCh++) {
+      fServer->Unregister(fCanvas[iMod][iCh]);
 
-  // std::cout << "delete server" << std::endl;
-  // delete fServer;
+      delete fGraph[iMod][iCh];
+      delete fCanvas[iMod][iCh];
+    }
+  }
 
   std::cout << "Start to write the output file" << std::endl;
   TFile *file = new TFile(Form("%ld.root", time(nullptr)), "RECREATE");
   fTree->Write();
   file->Close();
   delete file;
-  delete fTree;
   std::cout << "Finished to write the output file" << std::endl;
+
+  // Reset does not work well.  Probably THttpServer has a problem.
+  // Also sometimes release() also does not work....
+  // fServer.reset(nullptr);
+  // auto pointer = fServer.release();
+  // delete pointer;
+  delete fServer;
+  std::cout << "Monitor server killed" << std::endl;
 }
 
 void TDataTaking::ReadDigitizer()
@@ -110,82 +98,96 @@ void TDataTaking::ReadDigitizer()
 
     auto dataArray = fDigitizer->GetData();
     const int nHit = dataArray->size();
-    // std::cout << nHit << std::endl;
     for (int i = 0; i < nHit; i++) {
+      // WaveformData_t data(dataArray->at(i)->RecordLength);
+      SampleData_t data;
+      data.Trace1.resize(dataArray->at(i)->RecordLength);
+      data.ModNumber = dataArray->at(i)->ModNumber;
+      data.ChNumber = dataArray->at(i)->ChNumber;
+      data.TimeStamp = dataArray->at(i)->TimeStamp;
+      data.RecordLength = dataArray->at(i)->RecordLength;
+      std::memcpy(&data.Trace1[0], dataArray->at(i)->Trace1,
+                  dataArray->at(i)->RecordLength * sizeof(data.Trace1[0]));
+
       fMutex.lock();
-      fQueue.push_back(dataArray->at(i));
+      fFillQueue.push_back(data);
+      fPlotQueue.push_back(data);
       fMutex.unlock();
     }
-    usleep(1000);
+    usleep(1);
   }
 
+  fMutex.lock();
+  fDataTakingFlag = false;
   std::cout << "Data read out finished" << std::endl;
+  fMutex.unlock();
 }
 
 void TDataTaking::FillData()
 {
-  while (fAcqFlag) {
-    while (!fQueue.empty()) {
-      fData->ModNumber = fQueue.front()->ModNumber;
-      fData->ChNumber = fQueue.front()->ChNumber;
-      fData->TimeStamp = fQueue.front()->TimeStamp;
-      fData->ChargeLong = fQueue.front()->ChargeLong;
-      fData->ChargeShort = fQueue.front()->ChargeShort;
-      // fData->Energy = fQueue.front()->Energy;
-      fData->RecordLength = fQueue.front()->RecordLength;
-      constexpr auto eleSize = sizeof(*TPSDData_t::Trace1);
-      memcpy(fData->Trace1, fQueue.front()->Trace1,
-             fData->RecordLength * eleSize);
-
-      constexpr auto eleSizeShort = sizeof(*fData->Trace1);
-      memcpy(fData->Trace1, fQueue.front()->Trace1,
-             fData->RecordLength * eleSizeShort);
-      memcpy(fData->Trace2, fQueue.front()->Trace2,
-             fData->RecordLength * eleSizeShort);
-
-      constexpr auto eleSizeChar = sizeof(*fData->DTrace1);
-      memcpy(fData->DTrace1, fQueue.front()->DTrace1,
-             fData->RecordLength * eleSizeChar);
-      memcpy(fData->DTrace2, fQueue.front()->DTrace2,
-             fData->RecordLength * eleSizeChar);
+  while (fAcqFlag || fDataTakingFlag) {  // Think carefully.  Not good enough
+    while (!fFillQueue.empty()) {
+      fModNumber = fFillQueue.front().ModNumber;
+      fChNumber = fFillQueue.front().ChNumber;
+      fTimeStamp = fFillQueue.front().TimeStamp;
+      fRecordLength = fFillQueue.front().RecordLength;
+      memcpy(&fTrace1[0], &(fFillQueue.front().Trace1[0]),
+             fRecordLength * sizeof(fTrace1[0]));
 
       fTree->Fill();
-      // fHisADC[fData->ChNumber]->Fill(fData->Energy);
-      fHisADC[fData->ChNumber]->Fill(fData->ChargeLong);
-
-      for (uint iSample = 0; iSample < fData->RecordLength; iSample++) {
-        fGrWave->SetPoint(iSample, iSample * fTimeSample,
-                          fData->Trace1[iSample]);
-        fGrDTrace1->SetPoint(iSample, iSample * fTimeSample,
-                             fData->DTrace1[iSample] * 20000);
-        fGrDTrace2->SetPoint(iSample, iSample * fTimeSample,
-                             fData->DTrace2[iSample] * 20000);
-      }
 
       fMutex.lock();
-      delete fQueue.front();
-      fQueue.pop_front();
+      fFillQueue.pop_front();
       fMutex.unlock();
     }
 
-    if ((++fFillCounter % 1000) == 0) {
-      PlotAll();
-    }
-
-    usleep(1000);
+    usleep(1);
   }
 
+  fMutex.lock();
   std::cout << "Data filling finished" << std::endl;
+  fMutex.unlock();
+}
+
+void TDataTaking::PlotData()
+{
+  while (fAcqFlag) {
+    while (!fPlotQueue.empty()) {
+      // if (fAcqFlag == false) break;
+
+      const auto mod = fPlotQueue.front().ModNumber;
+      const auto ch = fPlotQueue.front().ChNumber;
+      const auto nPoints = fPlotQueue.front().RecordLength;
+
+      fGraph[mod][ch]->Set(0);
+      for (uint iSample = 0, counter = 0; iSample < nPoints; iSample += 500) {
+        fGraph[mod][ch]->SetPoint(counter++, iSample * fTimeSample,
+                                  fPlotQueue.front().Trace1[iSample]);
+      }
+      fCanvas[mod][ch]->cd();
+      fCanvas[mod][ch]->Modified();
+      fCanvas[mod][ch]->Update();
+      // fGraph[mod][ch]->Draw("AL");
+
+      fMutex.lock();
+      fPlotQueue.pop_front();
+      fMutex.unlock();
+    }
+
+    usleep(1);
+  }
+
+  fMutex.lock();
+  std::cout << "Data plotting finished" << std::endl;
+  fMutex.unlock();
 }
 
 void TDataTaking::PlotAll()
 {
-  fCanvas->cd(1);
-  fHisADC[1]->Draw();
-  fCanvas->cd(2);
-  fGrWave->Draw("AL");
-  fGrDTrace1->Draw("SAME F");
-  fGrDTrace2->Draw("SAME F");
-  fCanvas->cd();
-  fCanvas->Update();
+  for (auto iMod = 0; iMod < nMod; iMod++) {
+    for (auto iCh = 0; iCh < nCh; iCh++) {
+      fCanvas[iMod][iCh]->cd();
+      fGraph[iMod][iCh]->Draw("AL");
+    }
+  }
 }

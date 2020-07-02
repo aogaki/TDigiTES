@@ -4,18 +4,18 @@
 #include <iostream>
 #include <string>
 
-#include "TWaveForm.hpp"
+#include "TWaveform.hpp"
 
-TWaveForm::TWaveForm() : fpEventStd(nullptr), fTimeOffset(0), fPreviousTime(0)
+TWaveform::TWaveform() : fpEventStd(nullptr), fTimeOffset(0), fPreviousTime(0)
 {
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     fpReadoutBuffer[iBrd] = nullptr;
   }
 
-  fDataVec = new std::vector<WaveFormData_t *>;
+  fDataVec = new std::vector<WaveformData_t *>;
 }
 
-TWaveForm::~TWaveForm()
+TWaveform::~TWaveform()
 {
   FreeMemory();
   for (auto &&ele : *fDataVec) {
@@ -24,7 +24,7 @@ TWaveForm::~TWaveForm()
   delete fDataVec;
 }
 
-void TWaveForm::AllocateMemory()
+void TWaveform::AllocateMemory()
 {
   CAEN_DGTZ_ErrorCode err;
   uint32_t size;
@@ -47,7 +47,7 @@ void TWaveForm::AllocateMemory()
   }
 }
 
-void TWaveForm::FreeMemory()
+void TWaveform::FreeMemory()
 {
   CAEN_DGTZ_ErrorCode err;
 
@@ -62,17 +62,13 @@ void TWaveForm::FreeMemory()
   }
 };
 
-void TWaveForm::ReadEvents()
+void TWaveform::ReadEvents()
 {
   for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_EventInfo_t eventInfo;
   char *pEventPtr;
-
-  uint32_t tmp = 0;
-  CAEN_DGTZ_GetRecordLength(fHandler[0], &tmp);
-  std::cout << tmp << std::endl;
 
   CAEN_DGTZ_ErrorCode err;
   uint32_t bufferSize;
@@ -118,8 +114,7 @@ void TWaveForm::ReadEvents()
 
         // const uint16_t size = CAEN_DGTZ_GetRecordLength(fHandler[iBrd], &tmp);
         const uint32_t size = fpEventStd->ChSize[iCh];
-        std::cout << size << std::endl;
-        WaveFormData_t *dataEle = new TWaveFormData(size);
+        WaveformData_t *dataEle = new TWaveformData(size);
         dataEle->ModNumber = iBrd;
         dataEle->ChNumber = iCh;
         dataEle->TimeStamp = timeStamp;

@@ -29,3 +29,6 @@ file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cpp)
 #
 add_executable(digi main.cpp ${sources} ${headers})
 target_link_libraries(digi ${ROOT_LIBRARIES} CAENDigitizer RHTTP)
+
+add_executable(longRecord pa.cpp ${sources} ${headers})
+target_link_libraries(longRecord ${ROOT_LIBRARIES} CAENDigitizer RHTTP)
