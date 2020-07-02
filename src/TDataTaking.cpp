@@ -1,3 +1,4 @@
+#include <TSystem.h>
 #include <string.h>
 
 #include <algorithm>
@@ -87,6 +88,10 @@ TDataTaking::~TDataTaking()
   // fServer.reset(nullptr);
   // auto pointer = fServer.release();
   // delete pointer;
+
+  // Force to exit
+  gSystem->Exit(0);
+
   delete fServer;
   std::cout << "Monitor server killed" << std::endl;
 }
