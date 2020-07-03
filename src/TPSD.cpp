@@ -57,7 +57,8 @@ void TPSD::FreeMemory()
       fpReadoutBuffer[iBrd] = nullptr;
     }
     if (fppPSDEvents[iBrd] != nullptr) {
-      err = CAEN_DGTZ_FreeDPPEvents(fHandler[iBrd], (void **)(fppPSDEvents[iBrd]));
+      err = CAEN_DGTZ_FreeDPPEvents(fHandler[iBrd],
+                                    (void **)(fppPSDEvents[iBrd]));
       PrintError(err, "FreeDPPEvents");
       fppPSDEvents[iBrd] = nullptr;
     }
@@ -90,7 +91,7 @@ void TPSD::ReadEvents()
                                  nEvents);
     PrintError(err, "GetDPPEvents");
 
-    for (uint iCh = 0; iCh < 8; iCh++) {
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
       for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
         err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                            &(fppPSDEvents[iBrd][iCh][iEve]),

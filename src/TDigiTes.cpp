@@ -84,7 +84,7 @@ void TDigiTes::GetBoardInfo()
     err = CAEN_DGTZ_GetInfo(fHandler[iBrd], &info);
     PrintError(err, "GetInfo");
 
-    fNChs = info.Channels;
+    fNChs[iBrd] = info.Channels;
 
     std::cout << "Model name:\t" << info.ModelName << "\n"
               << "Model number:\t" << info.Model << "\n"

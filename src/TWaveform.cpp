@@ -109,7 +109,7 @@ void TWaveform::ReadEvents()
       }
       fPreviousTime = timeStamp;
 
-      for (uint32_t iCh = 0; iCh < 8; iCh++) {
+      for (uint32_t iCh = 0; iCh < fNChs[iBrd]; iCh++) {
         if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
 
         // const uint16_t size = CAEN_DGTZ_GetRecordLength(fHandler[iBrd], &tmp);

@@ -55,7 +55,8 @@ void TPHA::FreeMemory()
       fpReadoutBuffer[iBrd] = nullptr;
     }
     if (fppPHAEvents[iBrd] != nullptr) {
-      err = CAEN_DGTZ_FreeDPPEvents(fHandler[iBrd], (void **)(fppPHAEvents[iBrd]));
+      err = CAEN_DGTZ_FreeDPPEvents(fHandler[iBrd],
+                                    (void **)(fppPHAEvents[iBrd]));
       PrintError(err, "FreeDPPEvents");
       fppPHAEvents[iBrd] = nullptr;
     }
@@ -88,7 +89,7 @@ void TPHA::ReadEvents()
                                  nEvents);
     PrintError(err, "GetDPPEvents");
 
-    for (uint iCh = 0; iCh < 8; iCh++) {
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
       for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
         err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                            &(fppPHAEvents[iBrd][iCh][iEve]),

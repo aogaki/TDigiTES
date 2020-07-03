@@ -60,7 +60,7 @@ class TDigiTes
   int fTSample[MAX_NBRD];  // We need only this time sample information
   int fDigitizerModel;
   FirmWareCode fFirmware;
-  uint32_t fNChs;
+  uint32_t fNChs[MAX_NBRD];
   int fNBits;  // ADC, Waveform resolution
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
