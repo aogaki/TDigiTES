@@ -10,8 +10,7 @@ TDigiTes::TDigiTes(){};
 
 TDigiTes::~TDigiTes(){};
 
-void TDigiTes::LoadParameters(std::string fileName)
-{
+void TDigiTes::LoadParameters(std::string fileName) {
   LoadSysVars(fSysVars);
 
   // auto configFileName = "digiTES_Config.txt";
@@ -30,8 +29,7 @@ void TDigiTes::LoadParameters(std::string fileName)
   // for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) fHandler[iBrd] = handle[iBrd];
 }
 
-void TDigiTes::OpenDigitizers()
-{
+void TDigiTes::OpenDigitizers() {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     ret = CAEN_DGTZ_OpenDigitizer((CAEN_DGTZ_ConnectionType)fWDcfg.LinkType[b],
@@ -43,23 +41,25 @@ void TDigiTes::OpenDigitizers()
     if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;
     }
-    for (auto i = fWDcfg.NumAcqCh; i < MAX_NCH; i++)
+    // std::cout << "NumAcqCh\t" << fWDcfg.NumAcqCh << std::endl;
+    // std::cout << "NumPhyCh\t" << fWDcfg.NumPhyCh << std::endl;
+    // std::cout << "MAX_NCH\t" << MAX_NCH << std::endl;
+    // for (auto i = fWDcfg.NumAcqCh; i < MAX_NCH; i++)
+    for (auto i = fWDcfg.NumPhyCh; i < MAX_NCH; i++)
       fWDcfg.EnableInput[b][i] = 0;
 
     SetTraceNames(fWDcfg);
   }
 }
 
-void TDigiTes::CloseDigitizers()
-{
+void TDigiTes::CloseDigitizers() {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     ret = CAEN_DGTZ_CloseDigitizer(fHandler[b]);
   }
 }
 
-void TDigiTes::InitDigitizers()
-{
+void TDigiTes::InitDigitizers() {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     ret = (CAEN_DGTZ_ErrorCode)ProgramDigitizer(b, false, fWDcfg, fSysVars);
@@ -73,8 +73,7 @@ void TDigiTes::InitDigitizers()
   GetBoardInfo();
 }
 
-void TDigiTes::GetBoardInfo()
-{
+void TDigiTes::GetBoardInfo() {
   CAEN_DGTZ_BoardInfo_t info;
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     // Check ch mask
@@ -131,7 +130,7 @@ void TDigiTes::GetBoardInfo()
       fDigitizerModel = 720;
       fTSample[iBrd] = 4;
       fNBits = 12;
-    } else if (info.FamilyCode == 999) {  // temporary code for Hexagon
+    } else if (info.FamilyCode == 999) { // temporary code for Hexagon
       fDigitizerModel = 5000;
       fTSample[iBrd] = 10;
       fNBits = 14;
@@ -140,10 +139,10 @@ void TDigiTes::GetBoardInfo()
     }
 
     uint32_t majorNumber = atoi(info.AMC_FirmwareRel);
-    if (fDigitizerModel == 5000) {        // Hexagon
-      fFirmware = FirmWareCode::DPP_PHA;  // It will be never used at ELI?
+    if (fDigitizerModel == 5000) {       // Hexagon
+      fFirmware = FirmWareCode::DPP_PHA; // It will be never used at ELI?
     } else if (majorNumber == 128) {
-      fFirmware = FirmWareCode::DPP_PHA;  // It will be never used at ELI?
+      fFirmware = FirmWareCode::DPP_PHA; // It will be never used at ELI?
     } else if (majorNumber == 130) {
       fFirmware = FirmWareCode::DPP_ChInt;
     } else if (majorNumber == 131) {
@@ -151,9 +150,9 @@ void TDigiTes::GetBoardInfo()
     } else if (majorNumber == 132) {
       fFirmware = FirmWareCode::DPP_PSD;
     } else if (majorNumber == 136) {
-      fFirmware = FirmWareCode::DPP_PSD;  // NOTE: valid also for x725
+      fFirmware = FirmWareCode::DPP_PSD; // NOTE: valid also for x725
     } else if (majorNumber == 139) {
-      fFirmware = FirmWareCode::DPP_PHA;  // NOTE: valid also for x725
+      fFirmware = FirmWareCode::DPP_PHA; // NOTE: valid also for x725
     } else {
       fFirmware = FirmWareCode::STD;
     }
@@ -168,8 +167,7 @@ void TDigiTes::Start() { StartAcquisition(fWDcfg); }
 
 void TDigiTes::Stop() { StopAcquisition(fWDcfg); }
 
-void TDigiTes::SendSWTrigger()
-{
+void TDigiTes::SendSWTrigger() {
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     auto err = CAEN_DGTZ_SendSWtrigger(fHandler[b]);
     PrintError(err, "SendSWTrigger");
@@ -177,10 +175,9 @@ void TDigiTes::SendSWTrigger()
 }
 
 void TDigiTes::PrintError(const CAEN_DGTZ_ErrorCode &err,
-                          const std::string &funcName) const
-{
+                          const std::string &funcName) const {
   // if (true) {  // 0 is success
-  if (err < 0) {  // 0 is success
+  if (err < 0) { // 0 is success
     std::cout << "In " << funcName << ", error code = " << err << ", "
               << ErrorCodeMap[err] << std::endl;
     // CAEN_DGTZ_CloseDigitizer(fHandler);

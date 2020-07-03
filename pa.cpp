@@ -22,8 +22,7 @@
 #include "TWaveform.hpp"
 #include "digiTES.h"
 
-int InputCHeck(void)
-{
+int InputCHeck(void) {
   struct termios oldt, newt;
   int ch;
   int oldf;
@@ -49,8 +48,7 @@ int InputCHeck(void)
 }
 
 /* Real data taking example */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   std::unique_ptr<TApplication> app;
 
   std::unique_ptr<TDataTaking> digitizer(new TDataTaking);
@@ -62,9 +60,10 @@ int main(int argc, char *argv[])
   std::thread plotData(&TDataTaking::PlotData, digitizer.get());
 
   while (true) {
-    for (auto i = 0; i < 5; i++) digitizer->SendSWTrigger();
+    for (auto i = 0; i < 5; i++)
+      digitizer->SendSWTrigger();
 
-    gSystem->ProcessEvents();  // This should be called at main thread
+    gSystem->ProcessEvents(); // This should be called at main thread
 
     if (InputCHeck()) {
       // More option will be needed

@@ -2,14 +2,14 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
 #include "TDataTaking.hpp"
 // #include "TPHA.h"
 
-TDataTaking::TDataTaking() : fAcqFlag(true), fDataTakingFlag(true)
-{
+TDataTaking::TDataTaking() : fAcqFlag(true), fDataTakingFlag(true) {
   fDigitizer.reset(new TWaveform());
   fDigitizer->LoadParameters();
   fDigitizer->OpenDigitizers();
@@ -61,8 +61,7 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fDataTakingFlag(true)
   PlotAll();
 }
 
-TDataTaking::~TDataTaking()
-{
+TDataTaking::~TDataTaking() {
   std::cout << "Start to finish the run." << std::endl;
   fDigitizer->FreeMemory();
   fDigitizer->CloseDigitizers();
@@ -96,8 +95,7 @@ TDataTaking::~TDataTaking()
   std::cout << "Monitor server killed" << std::endl;
 }
 
-void TDataTaking::ReadDigitizer()
-{
+void TDataTaking::ReadDigitizer() {
   while (fAcqFlag) {
     fDigitizer->ReadEvents();
 
@@ -128,9 +126,8 @@ void TDataTaking::ReadDigitizer()
   fMutex.unlock();
 }
 
-void TDataTaking::FillData()
-{
-  while (fAcqFlag || fDataTakingFlag) {  // Think carefully.  Not good enough
+void TDataTaking::FillData() {
+  while (fAcqFlag || fDataTakingFlag) { // Think carefully.  Not good enough
     while (!fFillQueue.empty()) {
       fModNumber = fFillQueue.front().ModNumber;
       fChNumber = fFillQueue.front().ChNumber;
@@ -154,8 +151,7 @@ void TDataTaking::FillData()
   fMutex.unlock();
 }
 
-void TDataTaking::PlotData()
-{
+void TDataTaking::PlotData() {
   while (fAcqFlag) {
     while (!fPlotQueue.empty()) {
       // if (fAcqFlag == false) break;
@@ -187,8 +183,7 @@ void TDataTaking::PlotData()
   fMutex.unlock();
 }
 
-void TDataTaking::PlotAll()
-{
+void TDataTaking::PlotAll() {
   for (auto iMod = 0; iMod < nMod; iMod++) {
     for (auto iCh = 0; iCh < nCh; iCh++) {
       fCanvas[iMod][iCh]->cd();
