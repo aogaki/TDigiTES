@@ -161,7 +161,8 @@ void TDataTaking::PlotData() {
       const auto nPoints = fPlotQueue.front().RecordLength;
 
       fGraph[mod][ch]->Set(0);
-      for (uint iSample = 0, counter = 0; iSample < nPoints; iSample += 500) {
+      constexpr uint step = 500;
+      for (uint iSample = 0, counter = 0; iSample < nPoints; iSample += step) {
         fGraph[mod][ch]->SetPoint(counter++, iSample * fTimeSample,
                                   fPlotQueue.front().Trace1[iSample]);
       }
