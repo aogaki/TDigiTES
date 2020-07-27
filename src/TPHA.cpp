@@ -98,9 +98,9 @@ void TPHA::ReadEvents()
 
         // For Extended time stamp
         auto tdc =
-            fppPHAEvents[iBrd][iCh][iEve].TimeTag +
+           ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x3FFFFFFF) +
             ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-             << 31);
+             << 31)) * fWDcfg.Tsampl;
 
         auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;

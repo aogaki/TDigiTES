@@ -60,10 +60,10 @@ int main(int argc, char *argv[]) {
   std::thread plotData(&TDataTaking::PlotData, digitizer.get());
 
   while (true) {
-     //for (auto i = 0; i < 5; i++) {
-        //digitizer->SendSWTrigger();
-        //}
-     
+    // for (auto i = 0; i < 5; i++) {
+    // digitizer->SendSWTrigger();
+    //}
+
     gSystem->ProcessEvents(); // This should be called at main thread
 
     if (InputCHeck()) {

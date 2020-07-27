@@ -5,26 +5,31 @@
 
 #include "TPSD.hpp"
 
-TPSD::TPSD()
-{
+TPSD::TPSD() {
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     fpReadoutBuffer[iBrd] = nullptr;
     fpPSDWaveform[iBrd] = nullptr;
     fppPSDEvents[iBrd] = nullptr;
+
+    for (auto iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      fPreviousTime[iBrd][iCh] = 0;
+      fTimeOffset[iBrd][iCh] = 0;
+    }
   }
 
   fDataVec = new std::vector<TPSDData_t *>;
+
+  fFlagFineTS = false;
 }
 
-TPSD::~TPSD()
-{
+TPSD::~TPSD() {
   FreeMemory();
-  for (auto &&ele : *fDataVec) delete ele;
+  for (auto &&ele : *fDataVec)
+    delete ele;
   delete fDataVec;
 }
 
-void TPSD::AllocateMemory()
-{
+void TPSD::AllocateMemory() {
   CAEN_DGTZ_ErrorCode err;
   uint32_t size;
 
@@ -45,8 +50,7 @@ void TPSD::AllocateMemory()
   }
 }
 
-void TPSD::FreeMemory()
-{
+void TPSD::FreeMemory() {
   // In digiTes, fppPSDEvents is not the array.
   // I have to check the double freeing memory
   CAEN_DGTZ_ErrorCode err;
@@ -70,9 +74,9 @@ void TPSD::FreeMemory()
   }
 }
 
-void TPSD::ReadEvents()
-{
-  for (auto &&ele : *fDataVec) delete ele;
+void TPSD::ReadEvents() {
+  for (auto &&ele : *fDataVec)
+    delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_ErrorCode err;
@@ -83,7 +87,8 @@ void TPSD::ReadEvents()
                              CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                              fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
-    if (bufferSize == 0) return;  // in the case of 0, GetDPPEvents makes crush
+    if (bufferSize == 0)
+      return; // in the case of 0, GetDPPEvents makes crush
 
     uint32_t nEvents[MAX_NCH];
     err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
@@ -98,11 +103,16 @@ void TPSD::ReadEvents()
                                            fpPSDWaveform[iBrd]);
         PrintError(err, "DecodeDPPWaveforms");
 
-        // For Extended time stamp
-        auto tdc =
-            fppPSDEvents[iBrd][iCh][iEve].TimeTag +
-            ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-             << 31);
+        // Not use the Extended time stamp.
+        // We want to use extra as zero crossing
+        const auto TSMask =
+            (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
+        uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
+        if (timeTag < fPreviousTime[iBrd][iCh]) {
+          fTimeOffset[iBrd][iCh] += (TSMask + 1);
+        }
+        fPreviousTime[iBrd][iCh] = timeTag;
+        auto tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
 
         auto data = new TPSDData(fpPSDWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
@@ -111,6 +121,7 @@ void TPSD::ReadEvents()
         data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
         data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
         data->RecordLength = fpPSDWaveform[iBrd]->Ns;
+        data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
 
         constexpr auto eleSizeShort = sizeof(*data->Trace1);
         memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,
@@ -128,8 +139,30 @@ void TPSD::ReadEvents()
         memcpy(data->DTrace4, fpPSDWaveform[iBrd]->DTrace4,
                fpPSDWaveform[iBrd]->Ns * eleSizeChar);
 
-        fDataVec->push_back(data);
+        if ((data->ChargeLong > 0 && data->ChargeLong < 32767) &&
+            (data->ChargeShort > 0 && data->ChargeShort < 32767)) {
+          fDataVec->push_back(data);
+        }
       }
     }
   }
+}
+
+void TPSD::UseFineTS() {
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      // if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_CFD_PSD) {
+      if (true) {
+        RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 5, fWDcfg);
+        std::cout << "Set extra as ZC information" << std::endl;
+      }
+    }
+
+    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 2, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+  }
+
+  fFlagFineTS = true;
 }

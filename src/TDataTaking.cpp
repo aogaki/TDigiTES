@@ -14,6 +14,7 @@ TDataTaking::TDataTaking() : fAcqFlag(true), fDataTakingFlag(true) {
   fDigitizer->LoadParameters();
   fDigitizer->OpenDigitizers();
   fDigitizer->InitDigitizers();
+  fDigitizer->DisableSelfTrigger();
   fDigitizer->AllocateMemory();
   auto par = fDigitizer->GetParameters();
   fTimeSample = par.Tsampl;
@@ -89,8 +90,9 @@ TDataTaking::~TDataTaking() {
   // delete pointer;
 
   // Force to exit
-  gSystem->Exit(0);
+  // gSystem->Exit(0);
 
+  std::cout << fServer->ProcessRequests() << std::endl;
   delete fServer;
   std::cout << "Monitor server killed" << std::endl;
 }

@@ -5,19 +5,13 @@
 
 #include <iostream>
 
-class TPSDData
-{  // no getter setter.  using public member variables.
- public:
+class TPSDData { // no getter setter.  using public member variables.
+public:
   TPSDData()
-      : Trace1(nullptr),
-        Trace2(nullptr),
-        DTrace1(nullptr),
-        DTrace2(nullptr),
-        DTrace3(nullptr),
-        DTrace4(nullptr){};
+      : Trace1(nullptr), Trace2(nullptr), DTrace1(nullptr), DTrace2(nullptr),
+        DTrace3(nullptr), DTrace4(nullptr){};
 
-  TPSDData(uint32_t nSamples)
-  {
+  TPSDData(uint32_t nSamples) {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
     Trace2 = new uint16_t[nSamples];
@@ -27,8 +21,7 @@ class TPSDData
     DTrace4 = new uint8_t[nSamples];
   };
 
-  ~TPSDData()
-  {
+  ~TPSDData() {
     delete[] Trace1;
     Trace1 = nullptr;
     delete[] Trace2;
@@ -46,9 +39,11 @@ class TPSDData
   unsigned char ModNumber;
   unsigned char ChNumber;
   uint64_t TimeStamp;
+  uint16_t FineTS;
   int16_t ChargeShort;
   int16_t ChargeLong;
   uint32_t RecordLength;
+  uint32_t Extras;
   uint16_t *Trace1;
   uint16_t *Trace2;
   uint8_t *DTrace1;
