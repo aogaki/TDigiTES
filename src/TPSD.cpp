@@ -5,7 +5,8 @@
 
 #include "TPSD.hpp"
 
-TPSD::TPSD() {
+TPSD::TPSD()
+{
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     fpReadoutBuffer[iBrd] = nullptr;
     fpPSDWaveform[iBrd] = nullptr;
@@ -22,14 +23,15 @@ TPSD::TPSD() {
   fFlagFineTS = false;
 }
 
-TPSD::~TPSD() {
+TPSD::~TPSD()
+{
   FreeMemory();
-  for (auto &&ele : *fDataVec)
-    delete ele;
+  for (auto &&ele : *fDataVec) delete ele;
   delete fDataVec;
 }
 
-void TPSD::AllocateMemory() {
+void TPSD::AllocateMemory()
+{
   CAEN_DGTZ_ErrorCode err;
   uint32_t size;
 
@@ -50,7 +52,8 @@ void TPSD::AllocateMemory() {
   }
 }
 
-void TPSD::FreeMemory() {
+void TPSD::FreeMemory()
+{
   // In digiTes, fppPSDEvents is not the array.
   // I have to check the double freeing memory
   CAEN_DGTZ_ErrorCode err;
@@ -74,9 +77,9 @@ void TPSD::FreeMemory() {
   }
 }
 
-void TPSD::ReadEvents() {
-  for (auto &&ele : *fDataVec)
-    delete ele;
+void TPSD::ReadEvents()
+{
+  for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_ErrorCode err;
@@ -87,8 +90,7 @@ void TPSD::ReadEvents() {
                              CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                              fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
-    if (bufferSize == 0)
-      return; // in the case of 0, GetDPPEvents makes crush
+    if (bufferSize == 0) return;  // in the case of 0, GetDPPEvents makes crush
 
     uint32_t nEvents[MAX_NCH];
     err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
@@ -102,6 +104,12 @@ void TPSD::ReadEvents() {
                                            &(fppPSDEvents[iBrd][iCh][iEve]),
                                            fpPSDWaveform[iBrd]);
         PrintError(err, "DecodeDPPWaveforms");
+
+        // For Extended time stamp
+        // auto tdc =
+        //     fppPSDEvents[iBrd][iCh][iEve].TimeTag +
+        //     ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
+        //      << 31);
 
         // Not use the Extended time stamp.
         // We want to use extra as zero crossing
@@ -122,6 +130,21 @@ void TPSD::ReadEvents() {
         data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
         data->RecordLength = fpPSDWaveform[iBrd]->Ns;
         data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
+        data->FineTS = 0;
+        if (fFlagFineTS) {
+          // For safety and to kill the rounding error, cleary using double
+          double posZC = ((data->Extras >> 16) & 0xFFFF);
+          double negZC = (data->Extras & 0xFFFF);
+          double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
+          if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD)
+            thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+
+          if ((negZC <= thrZC) && (posZC >= thrZC)) {
+            double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+            data->FineTS =
+                (dt * 1000. * (thrZC - negZC) / (posZC - negZC) + 0.5);
+          }
+        }
 
         constexpr auto eleSizeShort = sizeof(*data->Trace1);
         memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,
@@ -148,18 +171,30 @@ void TPSD::ReadEvents() {
   }
 }
 
-void TPSD::UseFineTS() {
+void TPSD::UseFineTS()
+{
+  // This is for the x725 and x730 series.
+  // For other models, check the registers address.
+
+  // When we used Extra data as the fine TS.  Digitizer returned
+  // comb (rounding error effect) shaped distribution.
+  // Using zero crossing information and calculting by program is better.
+  // This is also the reason, extended time stamp is not used, and this
+  // class calcultes the extended time stamp in ReadEvents().
+
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
-      // if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_CFD_PSD) {
-      if (true) {
-        RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 5, fWDcfg);
-        std::cout << "Set extra as ZC information" << std::endl;
-      }
+      // Using extra as fine TS
+      // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b010,
+      //                 fWDcfg);
+      // Using extra as zero crossing information
+      RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
+                      fWDcfg);
     }
 
+    // Trace settings
     RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 2, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }

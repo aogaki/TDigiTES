@@ -1,1 +1,1 @@
-WaveForm.conf
+PSD.conf
