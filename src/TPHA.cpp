@@ -11,6 +11,11 @@ TPHA::TPHA()
     fpReadoutBuffer[iBrd] = nullptr;
     fpPHAWaveform[iBrd] = nullptr;
     fppPHAEvents[iBrd] = nullptr;
+
+    for (auto iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      fPreviousTime[iBrd][iCh] = 0;
+      fTimeOffset[iBrd][iCh] = 0;
+    }
   }
 
   fDataVec = new std::vector<PHAData_t *>;
@@ -97,10 +102,24 @@ void TPHA::ReadEvents()
         PrintError(err, "DecodeDPPWaveforms");
 
         // For Extended time stamp
-        auto tdc =
-           ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x3FFFFFFF) +
-            ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-             << 31)) * fWDcfg.Tsampl;
+        // For NOT x724
+        unsigned long tdc =
+            ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
+             ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
+              << 31)) *
+            fWDcfg.Tsampl;
+
+        // Extended timestamp without Extras2
+        // if(timeTag == 0) means start of second loop of time TimeTag
+        // The first (timeTag == 0) is at initializing duration.  Users
+        // can not catch the first one.
+        // const unsigned long TSMask = 0x7FFFFFFF;
+        // uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
+        // if (timeTag == 0 || timeTag < fPreviousTime[iBrd][iCh]) {
+        //   fTimeOffset[iBrd][iCh] += (TSMask + 1);
+        // }
+        // fPreviousTime[iBrd][iCh] = timeTag;
+        // unsigned long test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
 
         auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;

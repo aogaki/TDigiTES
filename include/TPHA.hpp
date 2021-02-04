@@ -34,6 +34,10 @@ class TPHA : public TDigiTes
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
   CAEN_DGTZ_DPP_PHA_Event_t **fppPHAEvents[MAX_NBRD];      // events buffer
   CAEN_DGTZ_DPP_PHA_Waveforms_t *fpPHAWaveform[MAX_NBRD];  // waveforms buffer
+
+  // For time TimeStamp
+  uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
+  uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
 };
 
 #endif

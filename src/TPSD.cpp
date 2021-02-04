@@ -106,10 +106,11 @@ void TPSD::ReadEvents()
         PrintError(err, "DecodeDPPWaveforms");
 
         // For Extended time stamp
-        // auto tdc =
-        //     fppPSDEvents[iBrd][iCh][iEve].TimeTag +
-        //     ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-        //      << 31);
+        auto tdc =
+            (fppPSDEvents[iBrd][iCh][iEve].TimeTag +
+             ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
+              << 31)) *
+            fWDcfg.Tsampl;
 
         // Not use the Extended time stamp.
         // We want to use extra as zero crossing
@@ -120,7 +121,13 @@ void TPSD::ReadEvents()
           fTimeOffset[iBrd][iCh] += (TSMask + 1);
         }
         fPreviousTime[iBrd][iCh] = timeTag;
-        auto tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+        auto test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+
+        std::cout << fppPSDEvents[iBrd][iCh][iEve].TimeTag << "\t" << tdc
+                  << "\t" << test << std::endl;
+        if (tdc != test) {
+          exit(0);
+        }
 
         auto data = new TPSDData(fpPSDWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
