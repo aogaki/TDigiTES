@@ -103,28 +103,40 @@ void TPHA::ReadEvents()
 
         // For Extended time stamp
         // For NOT x724
-        unsigned long tdc =
-            ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
-             ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
-              << 31)) *
-            fWDcfg.Tsampl;
+        // unsigned long test =
+        //     ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
+        //      ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
+        //       << 31)) *
+        //     fWDcfg.Tsampl;
 
         // Extended timestamp without Extras2
-        // if(timeTag == 0) means start of second loop of time TimeTag
-        // The first (timeTag == 0) is at initializing duration.  Users
-        // can not catch the first one.
-        // const unsigned long TSMask = 0x7FFFFFFF;
-        // uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
-        // if (timeTag == 0 || timeTag < fPreviousTime[iBrd][iCh]) {
-        //   fTimeOffset[iBrd][iCh] += (TSMask + 1);
-        // }
-        // fPreviousTime[iBrd][iCh] = timeTag;
-        // unsigned long test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+        const unsigned long TSMask = 0x7FFFFFFF;
+        uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
+        if (timeTag < fPreviousTime[iBrd][iCh]) {
+          fTimeOffset[iBrd][iCh] += (TSMask + 1);
+        }
+        fPreviousTime[iBrd][iCh] = timeTag;
+        unsigned long tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
 
         auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
         data->TimeStamp = tdc;
+        data->Extras = fppPHAEvents[iBrd][iCh][iEve].Extras2;
+        data->FineTS = 0;
+        if (fFlagFineTS) {
+          double posZC = int16_t((data->Extras >> 16) & 0xFFFF);
+          double negZC = int16_t(data->Extras & 0xFFFF);
+
+          if ((negZC < 0) && (posZC >= 0)) {
+            double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+            // Which is better?  Using pos or neg
+            // data->FineTS = ((dt * 1000. * posZC / (posZC - negZC)) + 0.5);
+            data->FineTS = ((dt * 1000. * (0 - negZC) / (posZC - negZC)) + 0.5);
+          }
+          // std::cout << negZC << "\t" << posZC << "\t" << data->FineTS
+          //           << std::endl;
+        }
         data->Energy = fppPHAEvents[iBrd][iCh][iEve].Energy;
         data->RecordLength = fpPHAWaveform[iBrd]->Ns;
 
@@ -144,4 +156,37 @@ void TPHA::ReadEvents()
       }
     }
   }
+}
+
+void TPHA::UseFineTS()
+{
+  // This is for the x725 and x730 series.
+  // For other models, check the registers address.
+
+  // When we used Extra data as the fine TS.  Digitizer returned
+  // comb (rounding error effect) shaped distribution.
+  // Using zero crossing information and calculting by program is better.
+  // This is also the reason, extended time stamp is not used, and this
+  // class calcultes the extended time stamp in ReadEvents().
+
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    RegisterSetBits(fHandler[iBrd], 0x8000, 17, 17, 1, fWDcfg);
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      // Using extra as fine TS
+      // RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 8, 10, 0b010,
+      //                 fWDcfg);
+      // Using extra as zero crossing information
+      RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 8, 10, 0b101,
+                      fWDcfg);
+    }
+
+    // Trace settings
+    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b10, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b01, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);
+  }
+
+  fFlagFineTS = true;
 }

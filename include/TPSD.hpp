@@ -25,8 +25,8 @@ class TPSD : public TDigiTes
   void ReadEvents();
   std::vector<TPSDData_t *> *GetData() { return fDataVec; }
 
-   void UseFineTS(); // For fine TS
-   
+  void UseFineTS();  // For fine TS
+
  private:
   std::vector<TPSDData_t *> *fDataVec;
 
@@ -34,11 +34,6 @@ class TPSD : public TDigiTes
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
   CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];      // events buffer
   CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform[MAX_NBRD];  // waveforms buffer
-
-   // For Fine TS
-   bool fFlagFineTS;
-   uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
-   uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
 };
 
 #endif

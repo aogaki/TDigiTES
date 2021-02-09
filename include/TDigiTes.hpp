@@ -50,6 +50,8 @@ class TDigiTes
 
   // void *GetData();
 
+  virtual void UseFineTS() = 0;  // For fine TS
+
  protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
   SysVars_t fSysVars;  // system variables
@@ -62,6 +64,11 @@ class TDigiTes
   FirmWareCode fFirmware;
   uint32_t fNChs[MAX_NBRD];
   int fNBits;  // ADC, Waveform resolution
+
+  // For Fine TS
+  bool fFlagFineTS;
+  uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
+  uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;

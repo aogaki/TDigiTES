@@ -12,8 +12,9 @@
 #include "TWaveformData.hpp"
 #include "digiTES.h"
 
-class TWaveform : public TDigiTes {
-public:
+class TWaveform : public TDigiTes
+{
+ public:
   TWaveform();
   virtual ~TWaveform();
 
@@ -26,12 +27,14 @@ public:
 
   void DisableSelfTrigger();
 
-private:
+  void UseFineTS(){};
+
+ private:
   std::vector<WaveformData_t *> *fDataVec;
 
   // Memory
-  char *fpReadoutBuffer[MAX_NBRD];                // readout buffer
-  CAEN_DGTZ_UINT16_EVENT_t *fpEventStd[MAX_NBRD]; // events buffer
+  char *fpReadoutBuffer[MAX_NBRD];                 // readout buffer
+  CAEN_DGTZ_UINT16_EVENT_t *fpEventStd[MAX_NBRD];  // events buffer
 
   // time stamp
   uint64_t fTimeOffset;

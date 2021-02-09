@@ -27,6 +27,8 @@ class TPHA : public TDigiTes
   void ReadEvents();
   std::vector<PHAData_t *> *GetData() { return fDataVec; }
 
+  void UseFineTS();
+
  private:
   std::vector<PHAData_t *> *fDataVec;
 
