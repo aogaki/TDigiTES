@@ -23,12 +23,12 @@ class TPSD : public TDigiTes
   void FreeMemory();
 
   void ReadEvents();
-  std::vector<TPSDData_t *> *GetData() { return fDataVec; }
+  std::vector<PSDData_t *> *GetData() { return fDataVec; }
 
   void UseFineTS();  // For fine TS
 
  private:
-  std::vector<TPSDData_t *> *fDataVec;
+  std::vector<PSDData_t *> *fDataVec;
 
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer

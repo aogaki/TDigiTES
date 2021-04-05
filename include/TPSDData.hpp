@@ -5,13 +5,19 @@
 
 #include <iostream>
 
-class TPSDData { // no getter setter.  using public member variables.
-public:
-  TPSDData()
-      : Trace1(nullptr), Trace2(nullptr), DTrace1(nullptr), DTrace2(nullptr),
-        DTrace3(nullptr), DTrace4(nullptr){};
+class PSDData
+{  // no getter setter.  using public member variables.
+ public:
+  PSDData()
+      : Trace1(nullptr),
+        Trace2(nullptr),
+        DTrace1(nullptr),
+        DTrace2(nullptr),
+        DTrace3(nullptr),
+        DTrace4(nullptr){};
 
-  TPSDData(uint32_t nSamples) {
+  PSDData(uint32_t nSamples)
+  {
     RecordLength = nSamples;
     Trace1 = new uint16_t[nSamples];
     Trace2 = new uint16_t[nSamples];
@@ -21,7 +27,8 @@ public:
     DTrace4 = new uint8_t[nSamples];
   };
 
-  ~TPSDData() {
+  ~PSDData()
+  {
     delete[] Trace1;
     Trace1 = nullptr;
     delete[] Trace2;
@@ -51,6 +58,6 @@ public:
   uint8_t *DTrace3;
   uint8_t *DTrace4;
 };
-typedef TPSDData TPSDData_t;
+typedef PSDData PSDData_t;
 
 #endif

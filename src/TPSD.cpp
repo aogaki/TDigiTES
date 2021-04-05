@@ -18,7 +18,7 @@ TPSD::TPSD()
     }
   }
 
-  fDataVec = new std::vector<TPSDData_t *>;
+  fDataVec = new std::vector<PSDData_t *>;
 
   fFlagFineTS = false;
 }
@@ -130,7 +130,7 @@ void TPSD::ReadEvents()
         //   exit(0);
         // }
 
-        auto data = new TPSDData(fpPSDWaveform[iBrd]->Ns);
+        auto data = new PSDData(fpPSDWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
         data->TimeStamp = tdc;
@@ -170,10 +170,7 @@ void TPSD::ReadEvents()
         memcpy(data->DTrace4, fpPSDWaveform[iBrd]->DTrace4,
                fpPSDWaveform[iBrd]->Ns * eleSizeChar);
 
-        if ((data->ChargeLong > 0 && data->ChargeLong < 32767) &&
-            (data->ChargeShort > 0 && data->ChargeShort < 32767)) {
-          fDataVec->push_back(data);
-        }
+        fDataVec->push_back(data);
       }
     }
   }
