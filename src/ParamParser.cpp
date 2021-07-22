@@ -260,6 +260,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     strcpy(WDcfg->RunDescription, "");
     strcpy(WDcfg->FwTypeString, "Unknown");
     WDcfg->NumBrd = 0;
+    WDcfg->Slave = 0;
     WDcfg->NumPhyCh = 8;
     WDcfg->NumAcqCh = 8;
     if (jobrun < 0)
@@ -523,7 +524,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         if (streq(str1, "USB"))
           WDcfg->LinkType[brd] = CAEN_DGTZ_USB;
         else if (streq(str1, "PCI"))
-          WDcfg->LinkType[brd] = CAEN_DGTZ_PCI_OpticalLink;
+          WDcfg->LinkType[brd] = CAEN_DGTZ_OpticalLink;
         else if (streq(str1, "VIRTUAL"))
           WDcfg->LinkType[brd] = VIRTUAL_BOARD_TYPE;
         else
@@ -605,6 +606,8 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         WDcfg->StartMode = START_MODE_TRGIN_1ST_SW;
       else if (streq(str1, "TRGIN_1ST_HW"))
         WDcfg->StartMode = START_MODE_TRGIN_1ST_HW;
+      else if (streq(str1, "SYNCIN_SLAVE"))
+        WDcfg->StartMode = START_MODE_SLAVE;
       else
         msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
     }
@@ -927,6 +930,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     if (streq(str, "EventBuffering")) WDcfg->EventBuffering = GetInt(f_ini);
     if (streq(str, "TrgoutMask")) WDcfg->TrgoutMask = GetHex(f_ini);
     if (streq(str, "RecordLength")) WDcfg->RecordLength = GetInt(f_ini);
+    if (streq(str, "Slave")) WDcfg->Slave = GetInt(f_ini);
     if (streq(str, "PreTrigger")) WDcfg->PreTrigger = GetInt(f_ini);
     if (streq(str, "TrgHoldOff")) WDcfg->TrgHoldOff = (int)GetTime(f_ini, "ns");
     if (streq(str, "StopOnTime")) WDcfg->StopOnTime = (int)GetTime(f_ini, "ms");

@@ -173,6 +173,7 @@
 #define START_MODE_SYNCIN_1ST_HW 2
 #define START_MODE_TRGIN_1ST_SW 3
 #define START_MODE_TRGIN_1ST_HW 4
+#define START_MODE_SLAVE 5
 
 #define TRGIN_MODE_DISABLED 0
 #define TRGIN_MODE_GLOBAL_TRG 1
@@ -746,6 +747,8 @@ typedef struct Config_t {
   float THmax[MAX_NBRD]
              [MAX_NCH];  // upper time value used to make time histograms
 
+
+  int Slave;
 } Config_t;
 
 //****************************************************************************

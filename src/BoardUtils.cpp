@@ -458,12 +458,14 @@ int StartAcquisition(Config_t &WDcfg)
 
     // StartMode 2: use SIN-TRGOUT daisy chain; the 1st board waits for an external logic level to start the acquisition
   } else if ((WDcfg.StartMode == START_MODE_SYNCIN_1ST_SW) ||
-             (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW)) {
-    if (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW) {
+             (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW) ||
+             (WDcfg.StartMode == START_MODE_SLAVE)) {
+    if (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW || (WDcfg.StartMode == START_MODE_SLAVE)) {
       printf(
-          "Boards armed. Waiting for SIN/GPI signal to start run (press a key "
-          "to force)\n");
+	     "Boards armed. Waiting for SIN/GPI signal to start run (press a key "
+	     "to force)\n");
       Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1);
+      printf("Start done\n");
     }
     if (!Started) {
       uint32_t d32;
@@ -497,7 +499,16 @@ int StopAcquisition(Config_t &WDcfg)
   // Note: in case the SIN-TRGOUT daisy chain is used to start/stop the run, stopping the 1st board will stop the acquisition in all of the boards
   // simultaneously; however, the CAEN_DGTZ_SWStopAcquisition function must be callod for the other boards too because they need to be disarmed
   msg_printf(MsgLog, "INFO: Stopping Acquisition\n");
-  for (b = 0; b < WDcfg.NumBrd; b++) CAEN_DGTZ_SWStopAcquisition(handle[b]);
+
+  if ((WDcfg.StartMode == START_MODE_SYNCIN_1ST_SW) ||
+      (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW)) {
+    CAEN_DGTZ_SWStopAcquisition(handle[0]);
+  } else if ((WDcfg.StartMode == START_MODE_SLAVE)){
+    ;
+  } else {   
+    for (b = 0; b < WDcfg.NumBrd; b++) CAEN_DGTZ_SWStopAcquisition(handle[b]);
+  }
+  
   return 0;
 }
 

@@ -151,6 +151,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
       break;
     case START_MODE_SYNCIN_1ST_SW:
     case START_MODE_SYNCIN_1ST_HW:
+    case START_MODE_SLAVE:
       if (WDcfg.SyncinMode != SYNCIN_MODE_RUN_CTRL) {
         msg_printf(
             MsgLog,
@@ -171,12 +172,14 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
               RUN_START_ON_SIN_LEVEL);  // Arm acquisition (Run will start when
                                         // SIN goes high)
       // Run Delay to deskew the start of acquisition
-      if (brd == 0)
+      if (brd == 0 && WDcfg.StartMode != START_MODE_SLAVE)
         ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170,
-                                       (WDcfg.NumBrd - 1) * 3 + 1);
+                                       (WDcfg.NumBrd + WDcfg.Slave - 1) * 3 + 1);
+      else if(WDcfg.StartMode == START_MODE_SLAVE)
+	ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170, (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
       else
         ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170,
-                                       (WDcfg.NumBrd - brd - 1) * 3);
+                                       (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
       break;
     case START_MODE_TRGIN_1ST_SW:
     case START_MODE_TRGIN_1ST_HW:

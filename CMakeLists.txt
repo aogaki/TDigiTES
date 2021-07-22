@@ -1,10 +1,10 @@
 #----------------------------------------------------------------------------
 # Setup the project
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(digi)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_definitions("-std=c++11 -march=native -mtune=native")
+set(CMAKE_CXX_STANDARD 17)
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})

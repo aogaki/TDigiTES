@@ -7,12 +7,13 @@
 
 TPHA::TPHA()
 {
-  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+  for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
+    std::cout << iBrd << std::endl;
     fpReadoutBuffer[iBrd] = nullptr;
     fpPHAWaveform[iBrd] = nullptr;
     fppPHAEvents[iBrd] = nullptr;
 
-    for (auto iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
       fPreviousTime[iBrd][iCh] = 0;
       fTimeOffset[iBrd][iCh] = 0;
     }
@@ -110,14 +111,23 @@ void TPHA::ReadEvents()
         //     fWDcfg.Tsampl;
 
         // Extended timestamp without Extras2
-        const unsigned long TSMask = 0x7FFFFFFF;
+        constexpr unsigned long TSMask = 0x7FFFFFFF;
         uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
         if (timeTag < fPreviousTime[iBrd][iCh]) {
           fTimeOffset[iBrd][iCh] += (TSMask + 1);
         }
         fPreviousTime[iBrd][iCh] = timeTag;
         unsigned long tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-
+	/*
+	if(timeTag == 0){
+	  std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
+		    <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
+		    <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
+		    << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
+		    << fWDcfg.EnableMask[iBrd] << std::endl;
+	}
+	*/
+	
         auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
@@ -182,7 +192,7 @@ void TPHA::UseFineTS()
 
     // Trace settings
     RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b10, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b00, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b01, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);

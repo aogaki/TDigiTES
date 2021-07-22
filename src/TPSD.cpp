@@ -7,18 +7,19 @@
 
 TPSD::TPSD()
 {
-  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+  for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
+    std::cout << iBrd << std::endl;
     fpReadoutBuffer[iBrd] = nullptr;
     fpPSDWaveform[iBrd] = nullptr;
     fppPSDEvents[iBrd] = nullptr;
 
-    for (auto iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
       fPreviousTime[iBrd][iCh] = 0;
       fTimeOffset[iBrd][iCh] = 0;
     }
   }
 
-  fDataVec = new std::vector<TPSDData_t *>;
+  fDataVec = new std::vector<PSDData_t *>;
 
   fFlagFineTS = false;
 }
@@ -81,7 +82,8 @@ void TPSD::ReadEvents()
 {
   for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
-
+  // fDataVec->resize(0);
+  
   CAEN_DGTZ_ErrorCode err;
 
   uint32_t bufferSize;
@@ -97,6 +99,8 @@ void TPSD::ReadEvents()
                                  bufferSize, (void **)(fppPSDEvents[iBrd]),
                                  nEvents);
     PrintError(err, "GetDPPEvents");
+
+    std::cout << nEvents[7] <<"\t"<< iBrd <<"\t"<< fNChs[iBrd] << std::endl;
 
     for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
       for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
@@ -130,7 +134,7 @@ void TPSD::ReadEvents()
         //   exit(0);
         // }
 
-        auto data = new TPSDData(fpPSDWaveform[iBrd]->Ns);
+        auto data = new PSDData(fpPSDWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
         data->TimeStamp = tdc;
@@ -153,7 +157,7 @@ void TPSD::ReadEvents()
                 ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
           }
         }
-
+	
         constexpr auto eleSizeShort = sizeof(*data->Trace1);
         memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,
                fpPSDWaveform[iBrd]->Ns * eleSizeShort);
@@ -169,11 +173,16 @@ void TPSD::ReadEvents()
                fpPSDWaveform[iBrd]->Ns * eleSizeChar);
         memcpy(data->DTrace4, fpPSDWaveform[iBrd]->DTrace4,
                fpPSDWaveform[iBrd]->Ns * eleSizeChar);
-
+	/*
         if ((data->ChargeLong > 0 && data->ChargeLong < 32767) &&
-            (data->ChargeShort > 0 && data->ChargeShort < 32767)) {
-          fDataVec->push_back(data);
-        }
+            (data->ChargeShort > 0 && data->ChargeShort < 32767)) {	  
+	  fDataVec->push_back(data);
+	} else {
+	  delete data;
+	}
+	*/
+	fDataVec->push_back(data);
+
       }
     }
   }

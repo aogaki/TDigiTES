@@ -38,8 +38,8 @@ class TPHA : public TDigiTes
   CAEN_DGTZ_DPP_PHA_Waveforms_t *fpPHAWaveform[MAX_NBRD];  // waveforms buffer
 
   // For time TimeStamp
-  uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
-  uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
+  // uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
+  // uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
 };
 
 #endif

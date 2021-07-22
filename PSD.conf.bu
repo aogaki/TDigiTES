@@ -1,0 +1,86 @@
+########################################################################################
+# Typical Config File for LaBr3 detectors
+########################################################################################
+
+# Board Connection Parameters:
+[BOARD 0]  Open USB 0 0
+
+
+[COMMON]
+
+#---------------------------------------------------------------------------------------
+# Acquisition Mode (MIXED, LIST, OFF_LINE)
+#---------------------------------------------------------------------------------------
+AcquisitionMode               MIXED
+RecordLength                  250
+PreTrigger                    10
+
+
+#---------------------------------------------------------------------------------------
+# Front Panel I/O
+#---------------------------------------------------------------------------------------
+FPIOtype                      NIM
+StartMode                     INDEP_SW
+SyncinMode                    TSTAMP_RESET
+TrginMode                     EXTTRG_ONLY
+VetoWindow                    0
+TrgoutMode                    CHANNEL_TRIGGERS
+TrgoutMask                    FF
+
+#---------------------------------------------------------------------------------------
+# On-board Coincidences
+#---------------------------------------------------------------------------------------
+CoincMode                     DISABLED
+MajorityLevel                 3
+CoincWindow                   100
+
+#---------------------------------------------------------------------------------------
+# Input Settings
+#---------------------------------------------------------------------------------------
+EnableInput                   1
+PulsePolarity                 NEGATIVE
+BaselineDCoffset              10
+InputDynamicRange             0
+
+#---------------------------------------------------------------------------------------
+# Discriminator and Trigger
+#---------------------------------------------------------------------------------------
+DiscrMode                     LED_PSD
+#DiscrMode                     CFD_PSD
+TriggerThreshold              1000
+TrgHoldOff                    5
+TTFsmoothing                  0
+CFDdelay                      4
+CFDfraction                   0
+CFDinterp                     0
+
+#---------------------------------------------------------------------------------------
+# Gated Charge Integrator (DPP_PSD or DPP_CI only)
+#---------------------------------------------------------------------------------------
+GateWidth                     100
+ShortGateWidth                50
+PreGate                       20
+PileUpMode                    0
+PurGap                        10
+NSBaseline                    2
+
+
+#***************************************************************************************
+[BOARD 0]
+#***************************************************************************************
+[CHANNEL 0]
+EnableInput  1
+[CHANNEL 1]
+EnableInput  1
+[CHANNEL 2]
+EnableInput  1
+[CHANNEL 3]
+EnableInput  1
+[CHANNEL 4]
+EnableInput  1
+[CHANNEL 5]
+EnableInput  1
+[CHANNEL 6]
+EnableInput  1
+[CHANNEL 7]
+EnableInput  1

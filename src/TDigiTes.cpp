@@ -35,8 +35,12 @@ void TDigiTes::OpenDigitizers() {
     ret = CAEN_DGTZ_OpenDigitizer((CAEN_DGTZ_ConnectionType)fWDcfg.LinkType[b],
                                   fWDcfg.LinkNum[b], fWDcfg.ConetNode[b],
                                   fWDcfg.BaseAddress[b], &fHandler[b]);
+    CAEN_DGTZ_Reset(fHandler[b]);
+
     std::cout << fHandler[b] << "\t" << handle[b] << std::endl;
     handle[b] = fHandler[b];
+    
+    
     char cstr[500];
     if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;
@@ -84,7 +88,7 @@ void TDigiTes::GetBoardInfo() {
     PrintError(err, "GetInfo");
 
     fNChs[iBrd] = info.Channels;
-
+    
     std::cout << "Model name:\t" << info.ModelName << "\n"
               << "Model number:\t" << info.Model << "\n"
               << "No. channels:\t" << info.Channels << "\n"
@@ -163,7 +167,18 @@ void TDigiTes::GetBoardInfo() {
   }
 }
 
-void TDigiTes::Start() { StartAcquisition(fWDcfg); }
+void TDigiTes::Start() {
+  for(auto iBrd = 0; iBrd < MAX_NBRD; iBrd++){
+    for(auto iCh = 0; iCh < MAX_NCH; iCh++){
+      fPreviousTime[iBrd][iCh] = 0;
+      fTimeOffset[iBrd][iCh] = 0;
+    }
+  }
+
+  sleep(1);
+  
+  StartAcquisition(fWDcfg);
+}
 
 void TDigiTes::Stop() { StopAcquisition(fWDcfg); }
 
