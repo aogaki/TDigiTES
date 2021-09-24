@@ -118,16 +118,16 @@ void TPHA::ReadEvents()
         }
         fPreviousTime[iBrd][iCh] = timeTag;
         unsigned long tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-	/*
-	if(timeTag == 0){
-	  std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
-		    <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
-		    <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
-		    << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
-		    << fWDcfg.EnableMask[iBrd] << std::endl;
-	}
-	*/
-	
+        /*
+        if(timeTag == 0){
+          std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
+                    <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
+                    <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
+                    << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
+                    << fWDcfg.EnableMask[iBrd] << std::endl;
+        }
+        */
+
         auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
         data->ModNumber = iBrd;
         data->ChNumber = iCh;
@@ -199,4 +199,30 @@ void TPHA::UseFineTS()
   }
 
   fFlagFineTS = true;
+}
+
+void TPHA::SetTrapezoidPar()
+{
+  if (fFirmware == FirmWareCode::DPP_PHA &&
+      (fDigitizerModel == 730 || fDigitizerModel == 725)) {
+    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+      for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+        auto timeUnit =
+            (fWDcfg.Tsampl * 4) * (1 << fWDcfg.Decimation[iBrd][iCh]);
+        int riseTime = fWDcfg.TrapRiseTime[iBrd][iCh] / timeUnit;
+        int flatTop = fWDcfg.TrapFlatTop[iBrd][iCh] / timeUnit;
+        int poleZero = fWDcfg.TrapPoleZero[iBrd][iCh] / timeUnit;
+
+        auto errCode = CAEN_DGTZ_WriteRegister(fHandler[iBrd],
+                                               0x105C + (iCh << 8), riseTime);
+        PrintError(errCode, "SetRiseTime");
+        errCode = CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x1060 + (iCh << 8),
+                                          flatTop);
+        PrintError(errCode, "SetFlatTop");
+        errCode = CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x1068 + (iCh << 8),
+                                          poleZero);
+        PrintError(errCode, "SetPoleZero");
+      }
+    }
+  }
 }

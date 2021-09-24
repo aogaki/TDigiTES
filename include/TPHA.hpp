@@ -29,6 +29,8 @@ class TPHA : public TDigiTes
 
   void UseFineTS();
 
+  void SetTrapezoidPar();
+
  private:
   std::vector<PHAData_t *> *fDataVec;
 

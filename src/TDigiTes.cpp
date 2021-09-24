@@ -41,8 +41,7 @@ void TDigiTes::OpenDigitizers()
 
     std::cout << fHandler[b] << "\t" << handle[b] << std::endl;
     handle[b] = fHandler[b];
-    
-    
+
     char cstr[500];
     if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;
@@ -93,7 +92,7 @@ void TDigiTes::GetBoardInfo()
     PrintError(err, "GetInfo");
 
     fNChs[iBrd] = info.Channels;
-    
+
     std::cout << "Model name:\t" << info.ModelName << "\n"
               << "Model number:\t" << info.Model << "\n"
               << "No. channels:\t" << info.Channels << "\n"
@@ -172,16 +171,17 @@ void TDigiTes::GetBoardInfo()
   }
 }
 
-void TDigiTes::Start() {
-  for(auto iBrd = 0; iBrd < MAX_NBRD; iBrd++){
-    for(auto iCh = 0; iCh < MAX_NCH; iCh++){
+void TDigiTes::Start()
+{
+  for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
+    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
       fPreviousTime[iBrd][iCh] = 0;
       fTimeOffset[iBrd][iCh] = 0;
     }
   }
 
   sleep(1);
-  
+
   StartAcquisition(fWDcfg);
 }
 
@@ -192,6 +192,17 @@ void TDigiTes::SendSWTrigger()
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
     auto err = CAEN_DGTZ_SendSWtrigger(fHandler[b]);
     PrintError(err, "SendSWTrigger");
+  }
+}
+
+void TDigiTes::SetThreshold()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+      auto errCode = CAEN_DGTZ_SetChannelTriggerThreshold(
+          fHandler[iBrd], iCh, fWDcfg.TrgThreshold[iBrd][iCh]);
+      PrintError(errCode, "SetThreshold");
+    }
   }
 }
 

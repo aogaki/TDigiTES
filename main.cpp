@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
   // std::unique_ptr<TWaveform> digitizer(new TWaveform);
   std::unique_ptr<TPSD> digitizer(new TPSD);
   // std::unique_ptr<TPHA> digitizer(new TPHA);
-  
+
   // digitizer->LoadParameters();
   // digitizer->LoadParameters("/DAQ/PSD.conf");
   //digitizer->LoadParameters("./PHA.conf");
@@ -77,18 +77,17 @@ int main(int argc, char *argv[])
   while (true) {
     // for (auto i = 0; i < 1000; i++) digitizer->SendSWTrigger();
     usleep(1000);
-     
+
     digitizer->ReadEvents();
     auto data = digitizer->GetData();
     // std::cout << data->size() <<" hits"<< std::endl;
-    if(data->size() > 0) {
+    if (data->size() > 0) {
       std::cout << data->at(0)->ChargeLong << std::endl;
-      }
-    
+    }
+
     if (InputCHeck()) {
       break;
     }
-
   }
 
   digitizer->Stop();

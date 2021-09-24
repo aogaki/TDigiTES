@@ -30,7 +30,8 @@ class TDigiTes
   virtual ~TDigiTes();
 
   void LoadParameters(std::string fileName = "digiTES_Config.txt");
-  const Config_t GetParameters() { return fWDcfg; };
+  Config_t GetParameters() { return fWDcfg; };
+  void SetParameters(Config_t par) { fWDcfg = par; };
 
   void OpenDigitizers();
   void CloseDigitizers();
@@ -39,6 +40,8 @@ class TDigiTes
 
   void Start();
   void Stop();
+
+  void SetThreshold();
 
   void SendSWTrigger();
 
