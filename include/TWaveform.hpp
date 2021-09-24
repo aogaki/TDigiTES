@@ -29,6 +29,8 @@ class TWaveform : public TDigiTes
 
   void UseFineTS(){};
 
+  void SetThreshold();
+
  private:
   std::vector<WaveformData_t *> *fDataVec;
 

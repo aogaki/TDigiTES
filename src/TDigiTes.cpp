@@ -195,16 +195,16 @@ void TDigiTes::SendSWTrigger()
   }
 }
 
-void TDigiTes::SetThreshold()
-{
-  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
-    for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
-      auto errCode = CAEN_DGTZ_SetChannelTriggerThreshold(
-          fHandler[iBrd], iCh, fWDcfg.TrgThreshold[iBrd][iCh]);
-      PrintError(errCode, "SetThreshold");
-    }
-  }
-}
+// void TDigiTes::SetThreshold()
+// {
+//   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+//     for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+//       auto errCode = CAEN_DGTZ_SetChannelTriggerThreshold(
+//           fHandler[iBrd], iCh, fWDcfg.TrgThreshold[iBrd][iCh]);
+//       PrintError(errCode, "SetThreshold");
+//     }
+//   }
+// }
 
 void TDigiTes::PrintError(const CAEN_DGTZ_ErrorCode &err,
                           const std::string &funcName) const

@@ -6,7 +6,8 @@
 
 #include "TWaveform.hpp"
 
-TWaveform::TWaveform() : fTimeOffset(0), fPreviousTime(0) {
+TWaveform::TWaveform() : fTimeOffset(0), fPreviousTime(0)
+{
   for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
     fpReadoutBuffer[iBrd] = nullptr;
     fpEventStd[iBrd] = nullptr;
@@ -15,7 +16,8 @@ TWaveform::TWaveform() : fTimeOffset(0), fPreviousTime(0) {
   fDataVec = new std::vector<WaveformData_t *>;
 }
 
-TWaveform::~TWaveform() {
+TWaveform::~TWaveform()
+{
   FreeMemory();
   for (auto &&ele : *fDataVec) {
     delete ele;
@@ -23,7 +25,8 @@ TWaveform::~TWaveform() {
   delete fDataVec;
 }
 
-void TWaveform::AllocateMemory() {
+void TWaveform::AllocateMemory()
+{
   CAEN_DGTZ_ErrorCode err;
   uint32_t size;
 
@@ -45,7 +48,8 @@ void TWaveform::AllocateMemory() {
   }
 }
 
-void TWaveform::FreeMemory() {
+void TWaveform::FreeMemory()
+{
   CAEN_DGTZ_ErrorCode err;
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
@@ -59,9 +63,9 @@ void TWaveform::FreeMemory() {
   }
 };
 
-void TWaveform::ReadEvents() {
-  for (auto &&ele : *fDataVec)
-    delete ele;
+void TWaveform::ReadEvents()
+{
+  for (auto &&ele : *fDataVec) delete ele;
   fDataVec->clear();
 
   CAEN_DGTZ_EventInfo_t eventInfo;
@@ -100,15 +104,14 @@ void TWaveform::ReadEvents() {
       uint64_t timeStamp =
           (eventInfo.TriggerTimeTag + fTimeOffset) * fTSample[iBrd];
       if (timeStamp < fPreviousTime) {
-        constexpr uint32_t maxTime = 0xFFFFFFFF / 2; // Check manual
+        constexpr uint32_t maxTime = 0xFFFFFFFF / 2;  // Check manual
         timeStamp += maxTime * fTSample[iBrd];
         fTimeOffset += maxTime;
       }
       fPreviousTime = timeStamp;
 
       for (uint32_t iCh = 0; iCh < fNChs[iBrd]; iCh++) {
-        if (!((fChMask[iBrd] >> iCh) & 0x1))
-          continue;
+        if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
 
         // const uint16_t size = CAEN_DGTZ_GetRecordLength(fHandler[iBrd],
         // &tmp);
@@ -129,11 +132,23 @@ void TWaveform::ReadEvents() {
   }
 };
 
-void TWaveform::DisableSelfTrigger() {
+void TWaveform::DisableSelfTrigger()
+{
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     for (uint32_t iCh = 0; iCh < fNChs[iBrd]; iCh++) {
       CAEN_DGTZ_SetChannelSelfTrigger(fHandler[iBrd],
                                       CAEN_DGTZ_TRGMODE_DISABLED, (1 << iCh));
+    }
+  }
+}
+
+void TWaveform::SetThreshold()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+      auto errCode = CAEN_DGTZ_SetChannelTriggerThreshold(
+          fHandler[iBrd], iCh, fWDcfg.TrgThreshold[iBrd][iCh]);
+      PrintError(errCode, "SetThreshold");
     }
   }
 }

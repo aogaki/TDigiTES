@@ -29,6 +29,7 @@ class TPHA : public TDigiTes
 
   void UseFineTS();
 
+  void SetThreshold();
   void SetTrapezoidPar();
 
  private:

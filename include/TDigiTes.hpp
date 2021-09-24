@@ -41,9 +41,9 @@ class TDigiTes
   void Start();
   void Stop();
 
-  void SetThreshold();
-
   void SendSWTrigger();
+
+  virtual void SetThreshold() = 0;
 
   // Memory
   virtual void AllocateMemory() = 0;

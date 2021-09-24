@@ -217,3 +217,17 @@ void TPSD::UseFineTS()
 
   fFlagFineTS = true;
 }
+
+void TPSD::SetThreshold()
+{
+  if (fDigitizerModel == 730 || fDigitizerModel == 725) {
+    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+      for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+        auto errCode =
+            CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x1060 + (iCh << 8),
+                                    fWDcfg.TrgThreshold[iBrd][iCh]);
+        PrintError(errCode, "SetThreshold");
+      }
+    }
+  }
+}

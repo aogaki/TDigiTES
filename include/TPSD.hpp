@@ -27,6 +27,8 @@ class TPSD : public TDigiTes
 
   void UseFineTS();  // For fine TS
 
+  void SetThreshold();
+
  private:
   std::vector<PSDData_t *> *fDataVec;
 
