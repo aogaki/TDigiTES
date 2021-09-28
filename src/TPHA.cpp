@@ -240,3 +240,40 @@ void TPHA::SetThreshold()
     }
   }
 }
+
+void TPHA::SetPHAPar()
+{
+  if (fDigitizerModel == 730 || fDigitizerModel == 725) {
+    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+      CAEN_DGTZ_DPP_PHA_Params_t par;
+
+      for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+        par.M[iCh] = fWDcfg.TrapPoleZero[iBrd][iCh];
+        par.m[iCh] = fWDcfg.TrapFlatTop[iBrd][iCh];
+        par.k[iCh] = fWDcfg.TrapRiseTime[iBrd][iCh];
+        par.ftd[iCh] = fWDcfg.PeakingTime[iBrd][iCh];
+        par.a[iCh] = fWDcfg.TTFsmoothing[iBrd][iCh];
+        par.b[iCh] = fWDcfg.TTFdelay[iBrd][iCh];  // Same as signal rise time
+        par.thr[iCh] = fWDcfg.TrgThreshold[iBrd][iCh];
+        par.nsbl[iCh] = fWDcfg.NsBaseline[iBrd][iCh];
+        par.nspk[iCh] = fWDcfg.NSPeak[iBrd][iCh];
+        par.pkho[iCh] = fWDcfg.PeakHoldOff[iBrd][iCh];
+        // par.blho[iCh] = fWDcfg.BaseLineHoldOff[iBrd][iCh];
+        par.blho[iCh] = 4;  // This was already removed from register setting?
+        par.trgho[iCh] = fWDcfg.TrgHoldOff;
+        // par.twwdt[iCh] = fWDcfg.ZeroCrossAccWindow[iBrd][iCh];
+        par.twwdt[iCh] = 0;  // Rise time discrimination, 0 means disable
+        par.trgwin[iCh] = fWDcfg.CoincWindow;
+        // par.dgain[iCh] = fWDcfg.DigitalGain[iBrd][iCh];
+        par.dgain[iCh] = 0;
+        par.enf[iCh] = fWDcfg.EnergyFineGain[iBrd][iCh];
+        par.decimation[iCh] = fWDcfg.Decimation[iBrd][iCh];
+      }
+
+      auto errCode = CAEN_DGTZ_SetDPPParameters(
+          fHandler[iBrd], (fWDcfg.EnableMask[iBrd]) & ((1 << fNChs[iBrd]) - 1),
+          &par);
+      PrintError(errCode, "SetDPPParameters");
+    }
+  }
+}

@@ -31,6 +31,7 @@ class TPHA : public TDigiTes
 
   void SetThreshold();
   void SetTrapezoidPar();
+  void SetPHAPar();  // Both threshold and trapezoid, and more
 
  private:
   std::vector<PHAData_t *> *fDataVec;
