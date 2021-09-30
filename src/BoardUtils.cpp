@@ -460,14 +460,15 @@ int StartAcquisition(Config_t &WDcfg)
   } else if ((WDcfg.StartMode == START_MODE_SYNCIN_1ST_SW) ||
              (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW) ||
              (WDcfg.StartMode == START_MODE_SLAVE)) {
-    if (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW || (WDcfg.StartMode == START_MODE_SLAVE)) {
+    if (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW ||
+        (WDcfg.StartMode == START_MODE_SLAVE)) {
       printf(
-	     "Boards armed. Waiting for SIN/GPI signal to start run (press a key "
-	     "to force)\n");
+          "Boards armed. Waiting for SIN/GPI signal to start run (press a key "
+          "to force)\n");
       Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1);
       printf("Start done\n");
     }
-    if (!Started) {
+    if (!Started && (WDcfg.StartMode != START_MODE_SLAVE)) {
       uint32_t d32;
       //CAEN_DGTZ_SetAcquisitionMode(handle[0], CAEN_DGTZ_SW_CONTROLLED);
       CAEN_DGTZ_ReadRegister(handle[0], CAEN_DGTZ_ACQ_CONTROL_ADD, &d32);
@@ -503,12 +504,12 @@ int StopAcquisition(Config_t &WDcfg)
   if ((WDcfg.StartMode == START_MODE_SYNCIN_1ST_SW) ||
       (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW)) {
     CAEN_DGTZ_SWStopAcquisition(handle[0]);
-  } else if ((WDcfg.StartMode == START_MODE_SLAVE)){
+  } else if ((WDcfg.StartMode == START_MODE_SLAVE)) {
     ;
-  } else {   
+  } else {
     for (b = 0; b < WDcfg.NumBrd; b++) CAEN_DGTZ_SWStopAcquisition(handle[b]);
   }
-  
+
   return 0;
 }
 
