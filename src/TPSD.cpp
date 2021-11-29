@@ -142,7 +142,7 @@ void TPSD::ReadEvents()
           data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
           data->RecordLength = fpPSDWaveform[iBrd]->Ns;
           data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
-          data->FineTS = 0;
+          data->FineTS = 0.;
           if (fFlagFineTS) {
             // For safety and to kill the rounding error, cleary using double
             double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);

@@ -46,7 +46,8 @@ class PSDData
   unsigned char ModNumber;
   unsigned char ChNumber;
   uint64_t TimeStamp;
-  uint16_t FineTS;
+  // uint16_t FineTS;
+  double FineTS;
   int16_t ChargeShort;
   int16_t ChargeLong;
   uint32_t RecordLength;
