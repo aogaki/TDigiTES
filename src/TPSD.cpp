@@ -92,7 +92,8 @@ void TPSD::ReadEvents()
                              CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                              fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
-    if (bufferSize == 0) return;  // in the case of 0, GetDPPEvents makes crush
+    if (bufferSize == 0)
+      continue;  // in the case of 0, GetDPPEvents makes crush
 
     uint32_t nEvents[MAX_NCH];
     err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
@@ -100,88 +101,88 @@ void TPSD::ReadEvents()
                                  nEvents);
     PrintError(err, "GetDPPEvents");
 
-    std::cout << nEvents[7] << "\t" << iBrd << "\t" << fNChs[iBrd] << std::endl;
+    if (err == CAEN_DGTZ_Success) {
+      for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+        for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+          err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
+                                             &(fppPSDEvents[iBrd][iCh][iEve]),
+                                             fpPSDWaveform[iBrd]);
+          PrintError(err, "DecodeDPPWaveforms");
 
-    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
-      for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
-        err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
-                                           &(fppPSDEvents[iBrd][iCh][iEve]),
-                                           fpPSDWaveform[iBrd]);
-        PrintError(err, "DecodeDPPWaveforms");
+          // For Extended time stamp
+          // auto tdc =
+          //     (fppPSDEvents[iBrd][iCh][iEve].TimeTag +
+          //      ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
+          //       << 31)) *
+          //     fWDcfg.Tsampl;
 
-        // For Extended time stamp
-        // auto tdc =
-        //     (fppPSDEvents[iBrd][iCh][iEve].TimeTag +
-        //      ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-        //       << 31)) *
-        //     fWDcfg.Tsampl;
-
-        // Not use the Extended time stamp.
-        // We want to use extra as zero crossing
-        const auto TSMask =
-            (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
-        uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
-        if (timeTag < fPreviousTime[iBrd][iCh]) {
-          fTimeOffset[iBrd][iCh] += (TSMask + 1);
-        }
-        fPreviousTime[iBrd][iCh] = timeTag;
-        auto tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-
-        // auto test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-        // std::cout << fppPSDEvents[iBrd][iCh][iEve].TimeTag << "\t" << tdc
-        //           << "\t" << test << std::endl;
-        // if (tdc != test) {
-        //   exit(0);
-        // }
-
-        auto data = new PSDData(fpPSDWaveform[iBrd]->Ns);
-        data->ModNumber = iBrd;
-        data->ChNumber = iCh;
-        data->TimeStamp = tdc;
-        data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
-        data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
-        data->RecordLength = fpPSDWaveform[iBrd]->Ns;
-        data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
-        data->FineTS = 0;
-        if (fFlagFineTS) {
-          // For safety and to kill the rounding error, cleary using double
-          double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
-          double negZC = uint16_t(data->Extras & 0xFFFF);
-          double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
-          if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD)
-            thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
-
-          if ((negZC <= thrZC) && (posZC >= thrZC)) {
-            double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
-            data->FineTS =
-                ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
+          // Not use the Extended time stamp.
+          // We want to use extra as zero crossing
+          const auto TSMask =
+              (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
+          uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
+          if (timeTag < fPreviousTime[iBrd][iCh]) {
+            fTimeOffset[iBrd][iCh] += (TSMask + 1);
           }
-        }
+          fPreviousTime[iBrd][iCh] = timeTag;
+          auto tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
 
-        constexpr auto eleSizeShort = sizeof(*data->Trace1);
-        memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,
-               fpPSDWaveform[iBrd]->Ns * eleSizeShort);
-        memcpy(data->Trace2, fpPSDWaveform[iBrd]->Trace2,
-               fpPSDWaveform[iBrd]->Ns * eleSizeShort);
+          // auto test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+          // std::cout << fppPSDEvents[iBrd][iCh][iEve].TimeTag << "\t" << tdc
+          //           << "\t" << test << std::endl;
+          // if (tdc != test) {
+          //   exit(0);
+          // }
 
-        constexpr auto eleSizeChar = sizeof(*data->DTrace1);
-        memcpy(data->DTrace1, fpPSDWaveform[iBrd]->DTrace1,
-               fpPSDWaveform[iBrd]->Ns * eleSizeChar);
-        memcpy(data->DTrace2, fpPSDWaveform[iBrd]->DTrace2,
-               fpPSDWaveform[iBrd]->Ns * eleSizeChar);
-        memcpy(data->DTrace3, fpPSDWaveform[iBrd]->DTrace3,
-               fpPSDWaveform[iBrd]->Ns * eleSizeChar);
-        memcpy(data->DTrace4, fpPSDWaveform[iBrd]->DTrace4,
-               fpPSDWaveform[iBrd]->Ns * eleSizeChar);
-        /*
-        if ((data->ChargeLong > 0 && data->ChargeLong < 32767) &&
-            (data->ChargeShort > 0 && data->ChargeShort < 32767)) {
+          auto data = new PSDData(fpPSDWaveform[iBrd]->Ns);
+          data->ModNumber = iBrd;
+          data->ChNumber = iCh;
+          data->TimeStamp = tdc;
+          data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
+          data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
+          data->RecordLength = fpPSDWaveform[iBrd]->Ns;
+          data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
+          data->FineTS = 0;
+          if (fFlagFineTS) {
+            // For safety and to kill the rounding error, cleary using double
+            double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
+            double negZC = uint16_t(data->Extras & 0xFFFF);
+            double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
+            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD)
+              thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+
+            if ((negZC <= thrZC) && (posZC >= thrZC)) {
+              double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+              data->FineTS =
+                  ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
+            }
+          }
+
+          constexpr auto eleSizeShort = sizeof(*data->Trace1);
+          memcpy(data->Trace1, fpPSDWaveform[iBrd]->Trace1,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeShort);
+          memcpy(data->Trace2, fpPSDWaveform[iBrd]->Trace2,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeShort);
+
+          constexpr auto eleSizeChar = sizeof(*data->DTrace1);
+          memcpy(data->DTrace1, fpPSDWaveform[iBrd]->DTrace1,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeChar);
+          memcpy(data->DTrace2, fpPSDWaveform[iBrd]->DTrace2,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeChar);
+          memcpy(data->DTrace3, fpPSDWaveform[iBrd]->DTrace3,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeChar);
+          memcpy(data->DTrace4, fpPSDWaveform[iBrd]->DTrace4,
+                 fpPSDWaveform[iBrd]->Ns * eleSizeChar);
+          /*
+          if ((data->ChargeLong > 0 && data->ChargeLong < 32767) &&
+              (data->ChargeShort > 0 && data->ChargeShort < 32767)) {
+            fDataVec->push_back(data);
+          } else {
+            delete data;
+          }
+          */
           fDataVec->push_back(data);
-        } else {
-          delete data;
         }
-        */
-        fDataVec->push_back(data);
       }
     }
   }
