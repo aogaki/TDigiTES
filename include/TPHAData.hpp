@@ -35,7 +35,7 @@ class PHAData
   unsigned char ModNumber;
   unsigned char ChNumber;
   uint64_t TimeStamp;
-  uint16_t FineTS;
+  double FineTS;
   uint16_t Energy;
   uint32_t Extras;
   uint32_t RecordLength;
