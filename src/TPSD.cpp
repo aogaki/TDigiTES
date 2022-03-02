@@ -148,11 +148,12 @@ void TPSD::ReadEvents()
             double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
             double negZC = uint16_t(data->Extras & 0xFFFF);
             double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
-            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD)
-              thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD
+		|| fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
+	      thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
 
             if ((negZC <= thrZC) && (posZC >= thrZC)) {
-              double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+	      double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
               data->FineTS =
                   ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
             }
