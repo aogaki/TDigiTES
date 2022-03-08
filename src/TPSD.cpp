@@ -172,6 +172,7 @@ void TPSD::ReadEvents()
             // data->FineTS = fWDcfg.Tsampl * fineTS;
             // data->FineTS = fineTS;
           }
+          data->FineTS = data->FineTS + (1000 * data->TimeStamp);
 
           if (fFlagTrgCounter[iBrd][iCh]) {
             // use fine ts as lost trigger counter;

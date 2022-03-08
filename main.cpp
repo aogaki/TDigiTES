@@ -59,10 +59,11 @@ int InputCHeck(void)
 int main(int argc, char *argv[])
 {
   TApplication app("test", &argc, argv);
-  auto binW = 2000. / 1024.;
+  // const auto binW = 2000. / 1024.;
+  const auto binW = 2000. / 1000.;
   const auto nBins = int(2000 / binW) + 1;
-  auto start = binW / 2.;
-  auto end = start + (nBins * binW);
+  const auto start = binW / 2.;
+  const auto end = start + (nBins * binW);
   auto hist = new TH1D("hist", "Fine TS", nBins, start, end);
   hist->SetXTitle("[ps]");
   auto canv = new TCanvas("canv", "test");
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
   digitizer->LoadParameters("./PSD.conf");
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
-  // digitizer->UseFineTS();
+  digitizer->UseFineTS();
   // digitizer->UseHWFineTS();
   digitizer->UseTrgCounter(0, 3);
   digitizer->AllocateMemory();
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
     for (auto iHit = 0; iHit < nHits; iHit++) {
       double ts = data->at(iHit)->TimeStamp;
       double fineTS = data->at(iHit)->FineTS;
-      hist->Fill(fineTS);
+      if (data->at(iHit)->ChNumber == 5) hist->Fill(fineTS);
 
       // auto lostTrg = uint16_t((data->at(iHit)->Extras >> 16) & 0xFFFF);
       // auto totalTrg = uint16_t(data->at(iHit)->Extras & 0xFFFF);
@@ -108,17 +109,18 @@ int main(int argc, char *argv[])
       // std::cout << int(data->at(iHit)->ChNumber) << "\t" << lostTrg << "\t"
       //           << "\t" << fineTS << "\t" << totalTrg << "\t" << counter
       //           << std::endl;
-
-      counter++;
-      if (ts - lastTime > updateTime) {
-        auto eveRate = (counter / (ts - lastTime)) * 1.e9;
-        auto lostRate = ((fineTS - lastLostCounter) / (ts - lastTime)) * 1.e9;
-        // std::cout << counter << "\t" << ts << "\t" << lastTime << std::endl;
-        std::cout << eveRate << " Hz\t" << lostRate << " Hz\t"
-                  << eveRate + lostRate << " Hz" << std::endl;
-        lastTime = ts;
-        lastLostCounter = fineTS;
-        counter = 0;
+      if (data->at(iHit)->ChNumber == 3) {
+        counter++;
+        if (ts - lastTime > updateTime) {
+          auto eveRate = (counter / (ts - lastTime)) * 1.e9;
+          auto lostRate = ((fineTS - lastLostCounter) / (ts - lastTime)) * 1.e9;
+          // std::cout << counter << "\t" << ts << "\t" << lastTime << std::endl;
+          std::cout << eveRate << " Hz\t" << lostRate << " Hz\t"
+                    << eveRate + lostRate << " Hz" << std::endl;
+          lastTime = ts;
+          lastLostCounter = fineTS;
+          counter = 0;
+        }
       }
     }
 

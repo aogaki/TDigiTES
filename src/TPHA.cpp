@@ -149,7 +149,26 @@ void TPHA::ReadEvents()
             }
             // std::cout << negZC << "\t" << posZC << "\t" << data->FineTS
             //           << std::endl;
+          } else if (fFlagHWFineTS) {
+            double fineTS = data->Extras & 0b1111111111;  // 10 bits
+            data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
+            // data->FineTS = fWDcfg.Tsampl * fineTS;
+            // data->FineTS = fineTS;
           }
+          data->FineTS = data->FineTS + (1000 * data->TimeStamp);
+
+          if (fFlagTrgCounter[iBrd][iCh]) {
+            // use fine ts as lost trigger counter;
+            double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
+            lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+            if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+              lostTrg += 0xFFFF;
+              fLostTrgCounterOffset[iBrd][iCh]++;
+            }
+            fLostTrgCounter[iBrd][iCh] = lostTrg;
+            data->FineTS = lostTrg;
+          }
+
           data->Energy = fppPHAEvents[iBrd][iCh][iEve].Energy;
           data->RecordLength = fpPHAWaveform[iBrd]->Ns;
 
