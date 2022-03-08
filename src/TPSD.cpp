@@ -16,12 +16,20 @@ TPSD::TPSD()
     for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
       fPreviousTime[iBrd][iCh] = 0;
       fTimeOffset[iBrd][iCh] = 0;
+      fLostTrgCounter[iBrd][iCh] = 0.;
+      fLostTrgCounterOffset[iBrd][iCh] = 0;
     }
   }
 
   fDataVec = new std::vector<PSDData_t *>;
 
   fFlagFineTS = false;
+  fFlagHWFineTS = false;
+  for (auto &&mod : fFlagTrgCounter) {
+    for (auto &&ch : mod) {
+      ch = false;
+    }
+  }
 }
 
 TPSD::~TPSD()
@@ -142,21 +150,39 @@ void TPSD::ReadEvents()
           data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
           data->RecordLength = fpPSDWaveform[iBrd]->Ns;
           data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
+
           data->FineTS = 0.;
           if (fFlagFineTS) {
             // For safety and to kill the rounding error, cleary using double
             double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
             double negZC = uint16_t(data->Extras & 0xFFFF);
             double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
-            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD
-		|| fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
-	      thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD ||
+                fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
+              thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
 
             if ((negZC <= thrZC) && (posZC >= thrZC)) {
-	      double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+              double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
               data->FineTS =
                   ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
             }
+          } else if (fFlagHWFineTS) {
+            double fineTS = data->Extras & 0b1111111111;  // 10 bits
+            data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
+            // data->FineTS = fWDcfg.Tsampl * fineTS;
+            // data->FineTS = fineTS;
+          }
+
+          if (fFlagTrgCounter[iBrd][iCh]) {
+            // use fine ts as lost trigger counter;
+            double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
+            lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+            if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+              lostTrg += 0xFFFF;
+              fLostTrgCounterOffset[iBrd][iCh]++;
+            }
+            fLostTrgCounter[iBrd][iCh] = lostTrg;
+            data->FineTS = lostTrg;
           }
 
           constexpr auto eleSizeShort = sizeof(*data->Trace1);
@@ -217,7 +243,44 @@ void TPSD::UseFineTS()
     RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
 
+  fFlagHWFineTS = false;
   fFlagFineTS = true;
+}
+
+void TPSD::UseHWFineTS()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      // Using extra as fine TS
+      RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b010,
+                      fWDcfg);
+      // Using extra as zero crossing information
+      // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
+      //                 fWDcfg);
+    }
+
+    // Trace settings
+    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+  }
+
+  fFlagFineTS = false;
+  fFlagHWFineTS = true;
+}
+
+void TPSD::UseTrgCounter(const int mod, const int ch)
+{
+  for (auto iMod = 0; iMod < MAX_NBRD; iMod++) {
+    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
+      if ((mod == -1 || mod == iMod) && (ch == -1 || ch == iCh)) {
+        fFlagTrgCounter[iMod][iCh] = true;
+        RegisterSetBits(fHandler[iMod], 0x1084 + (iCh << 8), 8, 10, 0b100,
+                        fWDcfg);
+      }
+    }
+  }
 }
 
 void TPSD::SetThreshold()

@@ -28,6 +28,8 @@ class TPHA : public TDigiTes
   std::vector<PHAData_t *> *GetData() { return fDataVec; }
 
   void UseFineTS();
+  void UseHWFineTS();
+  void UseTrgCounter(const int mod, const int ch);
 
   void SetThreshold();
   void SetTrapezoidPar();

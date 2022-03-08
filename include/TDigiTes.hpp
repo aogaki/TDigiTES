@@ -54,6 +54,8 @@ class TDigiTes
   // void *GetData();
 
   virtual void UseFineTS() = 0;  // For fine TS
+  virtual void UseHWFineTS() = 0;
+  virtual void UseTrgCounter(const int mod, const int ch) = 0;
 
  protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
@@ -70,8 +72,14 @@ class TDigiTes
 
   // For Fine TS
   bool fFlagFineTS;
+  bool fFlagHWFineTS;
   uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
   uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
+
+  // For trg counter
+  bool fFlagTrgCounter[MAX_NBRD][MAX_NCH];
+  double fLostTrgCounter[MAX_NBRD][MAX_NCH];
+  uint32_t fLostTrgCounterOffset[MAX_NBRD][MAX_NCH];
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;

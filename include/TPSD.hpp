@@ -26,6 +26,8 @@ class TPSD : public TDigiTes
   std::vector<PSDData_t *> *GetData() { return fDataVec; }
 
   void UseFineTS();  // For fine TS
+  void UseHWFineTS();
+  void UseTrgCounter(const int mod, const int ch);
 
   void SetThreshold();
 

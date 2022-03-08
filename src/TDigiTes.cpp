@@ -165,7 +165,7 @@ void TDigiTes::GetBoardInfo()
       fFirmware = FirmWareCode::STD;
     }
 
-    std::cout << "Time sample length:\t" << fTSample << " ns\n"
+    std::cout << "Time sample length:\t" << fTSample[iBrd] << " ns\n"
               << "ADC resolution:\t" << fNBits << " bits\n"
               << "Firmware code:\t" << int(fFirmware) << std::endl;
   }
@@ -177,6 +177,8 @@ void TDigiTes::Start()
     for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
       fPreviousTime[iBrd][iCh] = 0;
       fTimeOffset[iBrd][iCh] = 0;
+      fLostTrgCounter[iBrd][iCh] = 0;
+      fLostTrgCounterOffset[iBrd][iCh] = 0;
     }
   }
 

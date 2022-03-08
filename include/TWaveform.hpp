@@ -28,6 +28,8 @@ class TWaveform : public TDigiTes
   void DisableSelfTrigger();
 
   void UseFineTS(){};
+  void UseHWFineTS(){};
+  void UseTrgCounter(const int mod = -1, const int ch = -1){};
 
   void SetThreshold();
 

@@ -56,9 +56,18 @@ int InputCHeck(void)
   return 0;
 }
 
-/* Only display the number of hit */
 int main(int argc, char *argv[])
 {
+  TApplication app("test", &argc, argv);
+  auto binW = 2000. / 1024.;
+  const auto nBins = int(2000 / binW) + 1;
+  auto start = binW / 2.;
+  auto end = start + (nBins * binW);
+  auto hist = new TH1D("hist", "Fine TS", nBins, start, end);
+  hist->SetXTitle("[ps]");
+  auto canv = new TCanvas("canv", "test");
+  hist->Draw();
+
   // std::unique_ptr<TWaveform> digitizer(new TWaveform);
   std::unique_ptr<TPSD> digitizer(new TPSD);
   // std::unique_ptr<TPHA> digitizer(new TPHA);
@@ -69,21 +78,51 @@ int main(int argc, char *argv[])
   digitizer->LoadParameters("./PSD.conf");
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
-  digitizer->UseFineTS();
+  // digitizer->UseFineTS();
+  // digitizer->UseHWFineTS();
+  digitizer->UseTrgCounter(0, 3);
   digitizer->AllocateMemory();
 
   digitizer->Start();
 
   while (true) {
     // for (auto i = 0; i < 1000; i++) digitizer->SendSWTrigger();
-    usleep(1000);
+    usleep(10);
 
     digitizer->ReadEvents();
     auto data = digitizer->GetData();
-    // std::cout << data->size() <<" hits"<< std::endl;
-    if (data->size() > 0) {
-      std::cout << data->at(0)->ChargeLong << std::endl;
+    auto nHits = data->size();
+
+    constexpr auto updateTime = 1.e9;  // 1 sec in ns
+    static double lastTime = 0.;
+    static int counter = 0;
+    static double lastLostCounter = 0.;
+    for (auto iHit = 0; iHit < nHits; iHit++) {
+      double ts = data->at(iHit)->TimeStamp;
+      double fineTS = data->at(iHit)->FineTS;
+      hist->Fill(fineTS);
+
+      // auto lostTrg = uint16_t((data->at(iHit)->Extras >> 16) & 0xFFFF);
+      // auto totalTrg = uint16_t(data->at(iHit)->Extras & 0xFFFF);
+      //
+      // std::cout << int(data->at(iHit)->ChNumber) << "\t" << lostTrg << "\t"
+      //           << "\t" << fineTS << "\t" << totalTrg << "\t" << counter
+      //           << std::endl;
+
+      counter++;
+      if (ts - lastTime > updateTime) {
+        auto eveRate = (counter / (ts - lastTime)) * 1.e9;
+        auto lostRate = ((fineTS - lastLostCounter) / (ts - lastTime)) * 1.e9;
+        // std::cout << counter << "\t" << ts << "\t" << lastTime << std::endl;
+        std::cout << eveRate << " Hz\t" << lostRate << " Hz\t"
+                  << eveRate + lostRate << " Hz" << std::endl;
+        lastTime = ts;
+        lastLostCounter = fineTS;
+        counter = 0;
+      }
     }
+
+    canv->Update();
 
     if (InputCHeck()) {
       break;
@@ -94,6 +133,8 @@ int main(int argc, char *argv[])
 
   digitizer->FreeMemory();
   digitizer->CloseDigitizers();
+
+  app.Run();
 
   std::cout << "Finished" << std::endl;
   return 0;

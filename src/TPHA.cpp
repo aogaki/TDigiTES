@@ -205,6 +205,42 @@ void TPHA::UseFineTS()
   fFlagFineTS = true;
 }
 
+void TPHA::UseHWFineTS()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+      // Using extra as fine TS
+      RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 8, 10, 0b010,
+                      fWDcfg);
+      // Using extra as zero crossing information
+      // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
+      //                 fWDcfg);
+    }
+
+    // Trace settings
+    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+  }
+
+  fFlagFineTS = false;
+  fFlagHWFineTS = true;
+}
+
+void TPHA::UseTrgCounter(const int mod, const int ch)
+{
+  for (auto iMod = 0; iMod < MAX_NBRD; iMod++) {
+    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
+      if ((mod == -1 || mod == iMod) && (ch == -1 || ch == iCh)) {
+        fFlagTrgCounter[iMod][iCh] = true;
+        RegisterSetBits(fHandler[iMod], 0x10A0 + (iCh << 8), 8, 10, 0b100,
+                        fWDcfg);
+      }
+    }
+  }
+}
+
 void TPHA::SetTrapezoidPar()
 {
   if (fFirmware == FirmWareCode::DPP_PHA &&
