@@ -1,10 +1,10 @@
+#include "TWaveform.hpp"
+
 #include <CAENDigitizer.h>
 
 #include <cstring>
 #include <iostream>
 #include <string>
-
-#include "TWaveform.hpp"
 
 TWaveform::TWaveform() : fTimeOffset(0), fPreviousTime(0)
 {
@@ -12,18 +12,9 @@ TWaveform::TWaveform() : fTimeOffset(0), fPreviousTime(0)
     fpReadoutBuffer[iBrd] = nullptr;
     fpEventStd[iBrd] = nullptr;
   }
-
-  fDataVec = new std::vector<WaveformData_t *>;
 }
 
-TWaveform::~TWaveform()
-{
-  FreeMemory();
-  for (auto &&ele : *fDataVec) {
-    delete ele;
-  }
-  delete fDataVec;
-}
+TWaveform::~TWaveform() { FreeMemory(); }
 
 void TWaveform::AllocateMemory()
 {
@@ -65,72 +56,139 @@ void TWaveform::FreeMemory()
 
 void TWaveform::ReadEvents()
 {
-  for (auto &&ele : *fDataVec) delete ele;
-  fDataVec->clear();
+  ReadRawData();
+  DecodeRawData();
+}
 
-  CAEN_DGTZ_EventInfo_t eventInfo;
-  char *pEventPtr;
+void TWaveform::ReadRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    ReadRawData();
+    usleep(fReadInterval);
+  }
 
-  CAEN_DGTZ_ErrorCode err;
-  uint32_t bufferSize;
+  std::cout << "ReadRawData done" << std::endl;
+}
+
+void TWaveform::DecodeRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    DecodeRawData();
+    usleep(fDecodeInterval);
+  }
+
+  std::cout << "DecodeRawData done" << std::endl;
+}
+
+void TWaveform::StartReadoutMT()
+{
+  fReadoutFlag = true;
+  fReadThread = std::thread(&TWaveform::ReadRawDataWrapper, this);
+  fDecodeThread = std::thread(&TWaveform::DecodeRawDataWrapper, this);
+}
+
+void TWaveform::StopReadoutMT()
+{
+  fReadoutFlag = false;
+  fReadThread.join();
+  fDecodeThread.join();
+}
+
+void TWaveform::ReadRawData()
+{
+  RawData_t rawData(new std::vector<std::vector<char>>);
+
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
-    err = CAEN_DGTZ_ReadData(fHandler[iBrd],
-                             CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
-                             fpReadoutBuffer[iBrd], &bufferSize);
+    uint32_t bufferSize;
+    auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
+                                  CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                                  fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
 
-    uint32_t nEvents;
-    err = CAEN_DGTZ_GetNumEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
-                                 bufferSize, &nEvents);
-    PrintError(err, "GetNumEvents");
+    std::vector<char> v(bufferSize);
+    if (bufferSize > 0) memcpy(&v[0], fpReadoutBuffer[iBrd], bufferSize);
+    rawData->push_back(v);
+  }
 
-    for (auto iEve = 0; iEve < nEvents; iEve++) {
-      err = CAEN_DGTZ_GetEventInfo(fHandler[iBrd], fpReadoutBuffer[iBrd],
-                                   bufferSize, iEve, &eventInfo, &pEventPtr);
-      PrintError(err, "GetEventInfo");
-      // std::cout << "Event number:\t" << iEve << '\n'
-      //           << "Event size:\t" << eventInfo.EventSize << '\n'
-      //           << "Board ID:\t" << eventInfo.BoardId << '\n'
-      //           << "Pattern:\t" << eventInfo.Pattern << '\n'
-      //           << "Ch mask:\t" << eventInfo.ChannelMask << '\n'
-      //           << "Event counter:\t" << eventInfo.EventCounter << '\n'
-      //           << "Trigger time tag:\t" << eventInfo.TriggerTimeTag
-      //           << std::endl;
+  fMutex.lock();
+  fRawDataQue.push_back(rawData);
+  fMutex.unlock();
+}
 
-      err = CAEN_DGTZ_DecodeEvent(fHandler[iBrd], pEventPtr,
-                                  (void **)&fpEventStd[iBrd]);
-      PrintError(err, "DecodeEvent");
+void TWaveform::DecodeRawData()
+{
+  fMutex.lock();
+  const auto nRawData = fRawDataQue.size();
+  fMutex.unlock();
 
-      uint64_t timeStamp =
-          (eventInfo.TriggerTimeTag + fTimeOffset) * fTSample[iBrd];
-      if (timeStamp < fPreviousTime) {
-        constexpr uint32_t maxTime = 0xFFFFFFFF / 2;  // Check manual
-        timeStamp += maxTime * fTSample[iBrd];
-        fTimeOffset += maxTime;
-      }
-      fPreviousTime = timeStamp;
+  if (nRawData > 0) {
+    fMutex.lock();
+    auto rawData = fRawDataQue.front();
+    fRawDataQue.pop_front();
+    fMutex.unlock();
+    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+      uint32_t bufferSize = rawData->at(iBrd).size();
+      if (bufferSize == 0)
+        continue;  // in the case of 0, GetDPPEvents makes crush
 
-      for (uint32_t iCh = 0; iCh < fNChs[iBrd]; iCh++) {
-        if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
+      uint32_t nEvents;
+      auto err = CAEN_DGTZ_GetNumEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
+                                        bufferSize, &nEvents);
+      PrintError(err, "GetNumEvents");
 
-        // const uint16_t size = CAEN_DGTZ_GetRecordLength(fHandler[iBrd],
-        // &tmp);
-        const uint32_t size = fpEventStd[iBrd]->ChSize[iCh];
-        WaveformData_t *dataEle = new TWaveformData(size);
-        dataEle->ModNumber = iBrd;
-        dataEle->ChNumber = iCh;
-        dataEle->TimeStamp = timeStamp;
-        dataEle->RecordLength = size;
-        constexpr auto eleSizeShort =
-            sizeof(*fpEventStd[iBrd]->DataChannel[iCh]);
-        std::memcpy(dataEle->Trace1, fpEventStd[iBrd]->DataChannel[iCh],
-                    size * eleSizeShort);
+      for (auto iEve = 0; iEve < nEvents; iEve++) {
+        CAEN_DGTZ_EventInfo_t eventInfo;
+        char *pEventPtr;
+        err = CAEN_DGTZ_GetEventInfo(fHandler[iBrd], fpReadoutBuffer[iBrd],
+                                     bufferSize, iEve, &eventInfo, &pEventPtr);
+        PrintError(err, "GetEventInfo");
+        // std::cout << "Event number:\t" << iEve << '\n'
+        //           << "Event size:\t" << eventInfo.EventSize << '\n'
+        //           << "Board ID:\t" << eventInfo.BoardId << '\n'
+        //           << "Pattern:\t" << eventInfo.Pattern << '\n'
+        //           << "Ch mask:\t" << eventInfo.ChannelMask << '\n'
+        //           << "Event counter:\t" << eventInfo.EventCounter << '\n'
+        //           << "Trigger time tag:\t" << eventInfo.TriggerTimeTag
+        //           << std::endl;
 
-        fDataVec->push_back(dataEle);
+        err = CAEN_DGTZ_DecodeEvent(fHandler[iBrd], pEventPtr,
+                                    (void **)&fpEventStd[iBrd]);
+        PrintError(err, "DecodeEvent");
+
+        uint64_t timeStamp =
+            (eventInfo.TriggerTimeTag + fTimeOffset) * fTSample[iBrd];
+        if (timeStamp < fPreviousTime) {
+          constexpr uint32_t maxTime = 0xFFFFFFFF / 2;  // Check manual
+          timeStamp += maxTime * fTSample[iBrd];
+          fTimeOffset += maxTime;
+        }
+        fPreviousTime = timeStamp;
+
+        for (uint32_t iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+          if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
+
+          const uint32_t waveformSize = fpEventStd[iBrd]->ChSize[iCh];
+          auto data = std::make_shared<TreeData_t>(waveformSize);
+          data->Mod = iBrd;
+          data->Ch = iCh;
+          data->TimeStamp = timeStamp;
+          data->FineTS = 1000. * timeStamp;
+          data->ChargeLong = 0;
+          data->ChargeShort = 0;
+          data->RecordLength = waveformSize;
+          constexpr auto eleSizeShort =
+              sizeof(*fpEventStd[iBrd]->DataChannel[iCh]);
+          std::memcpy(&(data->Trace1[0]), fpEventStd[iBrd]->DataChannel[iCh],
+                      waveformSize * eleSizeShort);
+
+          fMutex.lock();
+          fDataVec->push_back(data);
+          fMutex.unlock();
+        }
       }
     }
   }
-};
+}
 
 void TWaveform::DisableSelfTrigger()
 {

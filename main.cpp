@@ -23,11 +23,11 @@
 #include "Configure.h"
 #include "Console.h"
 #include "ParamParser.h"
-#include "TDataTaking.hpp"
 #include "TDigiTes.hpp"
+#include "TPHA.hpp"
 #include "TPSD.hpp"
-#include "TPSDData.hpp"
 #include "TWaveform.hpp"
+#include "TreeData.h"
 #include "digiTES.h"
 
 int InputCHeck(void)
@@ -59,66 +59,74 @@ int InputCHeck(void)
 int main(int argc, char *argv[])
 {
   TApplication app("test", &argc, argv);
-  // const auto binW = 2000. / 1024.;
-  const auto binW = 2000. / 1000.;
-  const auto nBins = int(2000 / binW) + 1;
-  const auto start = binW / 2.;
-  const auto end = start + (nBins * binW);
-  auto hist = new TH1D("hist", "Fine TS", nBins, start, end);
-  hist->SetXTitle("[ps]");
-  auto canv = new TCanvas("canv", "test");
+  auto hist = new TH1D("hist", "Charge long", 1024, 0.5, 1024.5);
+  hist->SetXTitle("[ch]");
+  auto waveform = new TGraph();
+  waveform->SetMinimum(0);
+  waveform->SetMaximum(18000);
+  waveform->SetPoint(0, 0, 0);  // dummy
+  auto canv = new TCanvas("canv", "test", 1200, 400);
+  canv->Divide(2, 1);
+  canv->cd(1);
   hist->Draw();
+  canv->cd(2);
+  waveform->Draw("AL");
 
   // std::unique_ptr<TWaveform> digitizer(new TWaveform);
   std::unique_ptr<TPSD> digitizer(new TPSD);
   // std::unique_ptr<TPHA> digitizer(new TPHA);
 
   // digitizer->LoadParameters();
-  // digitizer->LoadParameters("/DAQ/PSD.conf");
-  //digitizer->LoadParameters("./PHA.conf");
+  // digitizer->LoadParameters("./PHA.conf");
   digitizer->LoadParameters("./PSD.conf");
+  // digitizer->LoadParameters("./Waveform.conf");
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
   digitizer->UseFineTS();
   // digitizer->UseHWFineTS();
-  digitizer->UseTrgCounter(0, 3);
+  digitizer->UseTrgCounter(0, 3);  // Change FineTS -> Lost trg counter
   digitizer->AllocateMemory();
 
   digitizer->Start();
+  digitizer->StartReadoutMT();
 
   while (true) {
     // for (auto i = 0; i < 1000; i++) digitizer->SendSWTrigger();
-    usleep(10);
+    // usleep(1);
 
-    digitizer->ReadEvents();
+    // digitizer->ReadEvents();
     auto data = digitizer->GetData();
     auto nHits = data->size();
 
     constexpr auto updateTime = 1.e9;  // 1 sec in ns
-    static double lastTime = 0.;
+    static double lastTS = 0.;
     static int counter = 0;
     static double lastLostCounter = 0.;
     for (auto iHit = 0; iHit < nHits; iHit++) {
       double ts = data->at(iHit)->TimeStamp;
-      double fineTS = data->at(iHit)->FineTS;
-      if (data->at(iHit)->ChNumber == 5) hist->Fill(fineTS);
-
+      double lostCounter = data->at(iHit)->FineTS;
+      auto adc = data->at(iHit)->ChargeLong;
+      if (data->at(iHit)->Ch == 3) {
+        hist->Fill(adc);
+        for (auto iPoint = 0; iPoint < data->at(iHit)->RecordLength; iPoint++)
+          waveform->SetPoint(iPoint, iPoint, data->at(iHit)->Trace1[iPoint]);
+      }
       // auto lostTrg = uint16_t((data->at(iHit)->Extras >> 16) & 0xFFFF);
       // auto totalTrg = uint16_t(data->at(iHit)->Extras & 0xFFFF);
       //
-      // std::cout << int(data->at(iHit)->ChNumber) << "\t" << lostTrg << "\t"
+      // std::cout << int(data->at(iHit)->Ch) << "\t" << lostTrg << "\t"
       //           << "\t" << fineTS << "\t" << totalTrg << "\t" << counter
       //           << std::endl;
-      if (data->at(iHit)->ChNumber == 3) {
+      if (data->at(iHit)->Ch == 3) {
         counter++;
-        if (ts - lastTime > updateTime) {
-          auto eveRate = (counter / (ts - lastTime)) * 1.e9;
-          auto lostRate = ((fineTS - lastLostCounter) / (ts - lastTime)) * 1.e9;
-          // std::cout << counter << "\t" << ts << "\t" << lastTime << std::endl;
+        if (ts - lastTS > updateTime) {
+          auto eveRate = (counter / (ts - lastTS)) * 1.e9;
+          auto lostRate =
+              ((lostCounter - lastLostCounter) / (ts - lastTS)) * 1.e9;
           std::cout << eveRate << " Hz\t" << lostRate << " Hz\t"
                     << eveRate + lostRate << " Hz" << std::endl;
-          lastTime = ts;
-          lastLostCounter = fineTS;
+          lastTS = ts;
+          lastLostCounter = lostCounter;
           counter = 0;
         }
       }
@@ -131,13 +139,13 @@ int main(int argc, char *argv[])
     }
   }
 
+  digitizer->StopReadoutMT();
   digitizer->Stop();
 
   digitizer->FreeMemory();
   digitizer->CloseDigitizers();
 
-  app.Run();
-
   std::cout << "Finished" << std::endl;
+  app.Run();
   return 0;
 }

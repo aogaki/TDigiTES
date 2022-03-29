@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+
 #include "CAENDigitizer.h"
 
 #ifdef WIN32
@@ -747,8 +749,21 @@ typedef struct Config_t {
   float THmax[MAX_NBRD]
              [MAX_NCH];  // upper time value used to make time histograms
 
-
+  // For synchlonization with different digitizer set
   int Slave;
+
+  // For ZLE
+  CAEN_DGTZ_TriggerMode_t SwTrigger[MAX_NBRD];
+  CAEN_DGTZ_TriggerMode_t ExtTriggerMode[MAX_NBRD];
+  unsigned char TriggerCoupleMask[MAX_NBRD];
+  std::string TriggerLogicCouple[MAX_NBRD][MAX_NCH];
+  bool BaseLineDefault[MAX_NBRD][MAX_NCH];
+  uint32_t BaseLineVal[MAX_NBRD][MAX_NCH];
+  uint32_t BaseLineNoise[MAX_NBRD][MAX_NCH];
+  uint32_t LBKwindow[MAX_NBRD][MAX_NCH];
+  uint32_t LFWwindow[MAX_NBRD][MAX_NCH];
+  uint32_t ZLEthreshold[MAX_NBRD][MAX_NCH];
+
 } Config_t;
 
 //****************************************************************************

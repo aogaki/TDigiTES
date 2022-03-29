@@ -9,7 +9,7 @@
 // #include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
-#include "TWaveformData.hpp"
+#include "TreeData.h"
 #include "digiTES.h"
 
 class TWaveform : public TDigiTes
@@ -19,11 +19,12 @@ class TWaveform : public TDigiTes
   virtual ~TWaveform();
 
   // Memory
-  void AllocateMemory();
-  void FreeMemory();
+  void AllocateMemory() override;
+  void FreeMemory() override;
 
-  void ReadEvents();
-  std::vector<WaveformData_t *> *GetData() { return fDataVec; }
+  void ReadEvents() override;
+  void StartReadoutMT() override;
+  void StopReadoutMT() override;
 
   void DisableSelfTrigger();
 
@@ -34,8 +35,6 @@ class TWaveform : public TDigiTes
   void SetThreshold();
 
  private:
-  std::vector<WaveformData_t *> *fDataVec;
-
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                 // readout buffer
   CAEN_DGTZ_UINT16_EVENT_t *fpEventStd[MAX_NBRD];  // events buffer
@@ -43,6 +42,11 @@ class TWaveform : public TDigiTes
   // time stamp
   uint64_t fTimeOffset;
   uint64_t fPreviousTime;
+
+  void ReadRawData() override;
+  void ReadRawDataWrapper() override;
+  void DecodeRawData() override;
+  void DecodeRawDataWrapper() override;
 };
 
 #endif

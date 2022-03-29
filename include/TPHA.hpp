@@ -1,7 +1,11 @@
 #ifndef TPHA_hpp
 #define TPHA_hpp 1
 
+#include <deque>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "BoardUtils.h"
@@ -9,7 +13,7 @@
 // #include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
-#include "TPHAData.hpp"
+#include "TreeData.h"
 #include "digiTES.h"
 
 class TPHA : public TDigiTes
@@ -19,33 +23,31 @@ class TPHA : public TDigiTes
   virtual ~TPHA();
 
   // Memory
-  void AllocateMemory();
-  void FreeMemory();
+  void AllocateMemory() override;
+  void FreeMemory() override;
 
-  // In the ReadEvents, all elements of fDataVec are deleted.
-  // After calling GetData, you have to copy or use the data before deleteing.
-  void ReadEvents();
-  std::vector<PHAData_t *> *GetData() { return fDataVec; }
+  void ReadEvents() override;
+  void StartReadoutMT() override;
+  void StopReadoutMT() override;
 
-  void UseFineTS();
-  void UseHWFineTS();
-  void UseTrgCounter(const int mod, const int ch);
+  void UseFineTS() override;
+  void UseHWFineTS() override;
+  void UseTrgCounter(const int mod, const int ch) override;
 
-  void SetThreshold();
+  void SetThreshold() override;
   void SetTrapezoidPar();
   void SetPHAPar();  // Both threshold and trapezoid, and more
 
  private:
-  std::vector<PHAData_t *> *fDataVec;
-
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
   CAEN_DGTZ_DPP_PHA_Event_t **fppPHAEvents[MAX_NBRD];      // events buffer
   CAEN_DGTZ_DPP_PHA_Waveforms_t *fpPHAWaveform[MAX_NBRD];  // waveforms buffer
 
-  // For time TimeStamp
-  // uint64_t fPreviousTime[MAX_NBRD][MAX_NCH];
-  // uint64_t fTimeOffset[MAX_NBRD][MAX_NCH];
+  void ReadRawData() override;
+  void ReadRawDataWrapper() override;
+  void DecodeRawData() override;
+  void DecodeRawDataWrapper() override;
 };
 
 #endif

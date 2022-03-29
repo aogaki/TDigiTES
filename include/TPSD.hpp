@@ -1,7 +1,11 @@
 #ifndef TPSD_hpp
 #define TPSD_hpp 1
 
+#include <deque>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "BoardUtils.h"
@@ -9,7 +13,7 @@
 // #include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
-#include "TPSDData.hpp"
+#include "TreeData.h"
 #include "digiTES.h"
 
 class TPSD : public TDigiTes
@@ -19,25 +23,29 @@ class TPSD : public TDigiTes
   virtual ~TPSD();
 
   // Memory
-  void AllocateMemory();
-  void FreeMemory();
+  void AllocateMemory() override;
+  void FreeMemory() override;
 
-  void ReadEvents();
-  std::vector<PSDData_t *> *GetData() { return fDataVec; }
+  void ReadEvents() override;
+  void StartReadoutMT() override;
+  void StopReadoutMT() override;
 
-  void UseFineTS();  // For fine TS
-  void UseHWFineTS();
-  void UseTrgCounter(const int mod, const int ch);
+  void UseFineTS() override;  // For fine TS
+  void UseHWFineTS() override;
+  void UseTrgCounter(const int mod, const int ch) override;
 
-  void SetThreshold();
+  void SetThreshold() override;
 
  private:
-  std::vector<PSDData_t *> *fDataVec;
-
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
   CAEN_DGTZ_DPP_PSD_Event_t **fppPSDEvents[MAX_NBRD];      // events buffer
   CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform[MAX_NBRD];  // waveforms buffer
+
+  void ReadRawData() override;
+  void ReadRawDataWrapper() override;
+  void DecodeRawData() override;
+  void DecodeRawDataWrapper() override;
 };
 
 #endif

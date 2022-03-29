@@ -1,9 +1,9 @@
+#include "TPHA.hpp"
+
 #include <CAENDigitizer.h>
 
 #include <iostream>
 #include <string>
-
-#include "TPHA.hpp"
 
 TPHA::TPHA()
 {
@@ -18,16 +18,9 @@ TPHA::TPHA()
       fTimeOffset[iBrd][iCh] = 0;
     }
   }
-
-  fDataVec = new std::vector<PHAData_t *>;
 };
 
-TPHA::~TPHA()
-{
-  FreeMemory();
-  for (auto &&ele : *fDataVec) delete ele;
-  delete fDataVec;
-};
+TPHA::~TPHA() { FreeMemory(); };
 
 void TPHA::AllocateMemory()
 {
@@ -76,115 +69,184 @@ void TPHA::FreeMemory()
 
 void TPHA::ReadEvents()
 {
-  for (auto &&ele : *fDataVec) delete ele;
-  fDataVec->clear();
+  ReadRawData();
+  DecodeRawData();
+}
 
-  CAEN_DGTZ_ErrorCode err;
+void TPHA::ReadRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    ReadRawData();
+    usleep(fReadInterval);
+  }
 
-  uint32_t bufferSize;
+  std::cout << "ReadRawData done" << std::endl;
+}
+
+void TPHA::DecodeRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    DecodeRawData();
+    usleep(fDecodeInterval);
+  }
+
+  std::cout << "DecodeRawData done" << std::endl;
+}
+
+void TPHA::StartReadoutMT()
+{
+  fReadoutFlag = true;
+  fReadThread = std::thread(&TPHA::ReadRawDataWrapper, this);
+  fDecodeThread = std::thread(&TPHA::DecodeRawDataWrapper, this);
+}
+
+void TPHA::StopReadoutMT()
+{
+  fReadoutFlag = false;
+  fReadThread.join();
+  fDecodeThread.join();
+}
+
+void TPHA::ReadRawData()
+{
+  RawData_t rawData(new std::vector<std::vector<char>>);
+
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
-    err = CAEN_DGTZ_ReadData(fHandler[iBrd],
-                             CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
-                             fpReadoutBuffer[iBrd], &bufferSize);
+    uint32_t bufferSize;
+    auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
+                                  CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                                  fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
-    if (bufferSize == 0)
-      continue;  // in the case of 0, GetDPPEvents makes crush
 
-    uint32_t nEvents[MAX_NCH];
-    err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
-                                 bufferSize, (void **)(fppPHAEvents[iBrd]),
-                                 nEvents);
-    PrintError(err, "GetDPPEvents");
-    if (err == CAEN_DGTZ_Success) {
-      for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
-        for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
-          err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
-                                             &(fppPHAEvents[iBrd][iCh][iEve]),
-                                             fpPHAWaveform[iBrd]);
-          PrintError(err, "DecodeDPPWaveforms");
+    std::vector<char> v(bufferSize);
+    if (bufferSize > 0) memcpy(&v[0], fpReadoutBuffer[iBrd], bufferSize);
+    rawData->push_back(v);
+  }
 
-          // For Extended time stamp
-          // For NOT x724
-          // unsigned long test =
-          //     ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
-          //      ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
-          //       << 31)) *
-          //     fWDcfg.Tsampl;
+  fMutex.lock();
+  fRawDataQue.push_back(rawData);
+  fMutex.unlock();
+}
 
-          // Extended timestamp without Extras2
-          constexpr unsigned long TSMask = 0x7FFFFFFF;
-          uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
-          if (timeTag < fPreviousTime[iBrd][iCh]) {
-            fTimeOffset[iBrd][iCh] += (TSMask + 1);
-          }
-          fPreviousTime[iBrd][iCh] = timeTag;
-          unsigned long tdc =
-              (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-          /*
-          if(timeTag == 0){
-            std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
-                      <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
-                      <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
-                      << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
-                      << fWDcfg.EnableMask[iBrd] << std::endl;
-          }
-          */
+void TPHA::DecodeRawData()
+{
+  fMutex.lock();
+  const auto nRawData = fRawDataQue.size();
+  fMutex.unlock();
 
-          auto data = new PHAData(fpPHAWaveform[iBrd]->Ns);
-          data->ModNumber = iBrd;
-          data->ChNumber = iCh;
-          data->TimeStamp = tdc;
-          data->Extras = fppPHAEvents[iBrd][iCh][iEve].Extras2;
-          data->FineTS = 0;
-          if (fFlagFineTS) {
-            double posZC = int16_t((data->Extras >> 16) & 0xFFFF);
-            double negZC = int16_t(data->Extras & 0xFFFF);
+  if (nRawData > 0) {
+    fMutex.lock();
+    auto rawData = fRawDataQue.front();
+    fRawDataQue.pop_front();
+    fMutex.unlock();
 
-            if ((negZC < 0) && (posZC >= 0)) {
-              double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
-              // Which is better?  Using pos or neg
-              // data->FineTS = ((dt * 1000. * posZC / (posZC - negZC)) + 0.5);
-              data->FineTS =
-                  ((dt * 1000. * (0 - negZC) / (posZC - negZC)) + 0.5);
+    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+      uint32_t bufferSize = rawData->at(iBrd).size();
+      if (bufferSize == 0)
+        continue;  // in the case of 0, GetDPPEvents makes crush
+
+      uint32_t nEvents[MAX_NCH];
+      auto err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
+                                        bufferSize,
+                                        (void **)(fppPHAEvents[iBrd]), nEvents);
+      PrintError(err, "GetDPPEvents");
+      if (err == CAEN_DGTZ_Success) {
+        for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+          for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+            err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
+                                               &(fppPHAEvents[iBrd][iCh][iEve]),
+                                               fpPHAWaveform[iBrd]);
+            PrintError(err, "DecodeDPPWaveforms");
+
+            // For Extended time stamp
+            // For NOT x724
+            // unsigned long test =
+            //     ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
+            //      ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
+            //       << 31)) *
+            //     fWDcfg.Tsampl;
+
+            // Extended timestamp without Extras2
+            constexpr unsigned long TSMask = 0x7FFFFFFF;
+            uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
+            if (timeTag < fPreviousTime[iBrd][iCh]) {
+              fTimeOffset[iBrd][iCh] += (TSMask + 1);
             }
-            // std::cout << negZC << "\t" << posZC << "\t" << data->FineTS
-            //           << std::endl;
-          } else if (fFlagHWFineTS) {
-            double fineTS = data->Extras & 0b1111111111;  // 10 bits
-            data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
-            // data->FineTS = fWDcfg.Tsampl * fineTS;
-            // data->FineTS = fineTS;
-          }
-          data->FineTS = data->FineTS + (1000 * data->TimeStamp);
-
-          if (fFlagTrgCounter[iBrd][iCh]) {
-            // use fine ts as lost trigger counter;
-            double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
-            lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
-            if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
-              lostTrg += 0xFFFF;
-              fLostTrgCounterOffset[iBrd][iCh]++;
+            fPreviousTime[iBrd][iCh] = timeTag;
+            unsigned long tdc =
+                (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+            /*
+            if(timeTag == 0){
+              std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
+                        <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
+                        <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
+                        << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
+                        << fWDcfg.EnableMask[iBrd] << std::endl;
             }
-            fLostTrgCounter[iBrd][iCh] = lostTrg;
-            data->FineTS = lostTrg;
+            */
+
+            auto data = std::make_shared<TreeData_t>(fpPHAWaveform[iBrd]->Ns);
+            data->Mod = iBrd;
+            data->Ch = iCh;
+            data->TimeStamp = tdc;
+            data->Extras = fppPHAEvents[iBrd][iCh][iEve].Extras2;
+            data->FineTS = 0;
+            if (fFlagFineTS) {
+              double posZC = int16_t((data->Extras >> 16) & 0xFFFF);
+              double negZC = int16_t(data->Extras & 0xFFFF);
+
+              if ((negZC < 0) && (posZC >= 0)) {
+                double dt =
+                    (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+                // Which is better?  Using pos or neg
+                // data->FineTS = ((dt * 1000. * posZC / (posZC - negZC)) + 0.5);
+                data->FineTS =
+                    ((dt * 1000. * (0 - negZC) / (posZC - negZC)) + 0.5);
+              }
+              // std::cout << negZC << "\t" << posZC << "\t" << data->FineTS
+              //           << std::endl;
+            } else if (fFlagHWFineTS) {
+              double fineTS = data->Extras & 0b1111111111;  // 10 bits
+              data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
+              // data->FineTS = fWDcfg.Tsampl * fineTS;
+              // data->FineTS = fineTS;
+            }
+            data->FineTS = data->FineTS + (1000 * data->TimeStamp);
+
+            if (fFlagTrgCounter[iBrd][iCh]) {
+              // use fine ts as lost trigger counter;
+              double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
+              lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+              if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+                lostTrg += 0xFFFF;
+                fLostTrgCounterOffset[iBrd][iCh]++;
+              }
+              fLostTrgCounter[iBrd][iCh] = lostTrg;
+              data->FineTS = lostTrg;
+            }
+
+            data->ChargeLong = fppPHAEvents[iBrd][iCh][iEve].Energy;
+            data->ChargeShort = fppPHAEvents[iBrd][iCh][iEve].Energy;
+            data->RecordLength = fpPHAWaveform[iBrd]->Ns;
+
+            if (data->RecordLength > 0) {
+              constexpr auto eleSizeShort = sizeof(data->Trace1[0]);
+              memcpy(&(data->Trace1[0]), fpPHAWaveform[iBrd]->Trace1,
+                     fpPHAWaveform[iBrd]->Ns * eleSizeShort);
+              memcpy(&(data->Trace2[0]), fpPHAWaveform[iBrd]->Trace2,
+                     fpPHAWaveform[iBrd]->Ns * eleSizeShort);
+
+              constexpr auto eleSizeChar = sizeof(data->DTrace1[0]);
+              memcpy(&(data->DTrace1[0]), fpPHAWaveform[iBrd]->DTrace1,
+                     fpPHAWaveform[iBrd]->Ns * eleSizeChar);
+              memcpy(&(data->DTrace2[0]), fpPHAWaveform[iBrd]->DTrace2,
+                     fpPHAWaveform[iBrd]->Ns * eleSizeChar);
+            }
+
+            fMutex.lock();
+            fDataVec->push_back(data);
+            fMutex.unlock();
           }
-
-          data->Energy = fppPHAEvents[iBrd][iCh][iEve].Energy;
-          data->RecordLength = fpPHAWaveform[iBrd]->Ns;
-
-          constexpr auto eleSizeShort = sizeof(*data->Trace1);
-          memcpy(data->Trace1, fpPHAWaveform[iBrd]->Trace1,
-                 fpPHAWaveform[iBrd]->Ns * eleSizeShort);
-          memcpy(data->Trace2, fpPHAWaveform[iBrd]->Trace2,
-                 fpPHAWaveform[iBrd]->Ns * eleSizeShort);
-
-          constexpr auto eleSizeChar = sizeof(*data->DTrace1);
-          memcpy(data->DTrace1, fpPHAWaveform[iBrd]->DTrace1,
-                 fpPHAWaveform[iBrd]->Ns * eleSizeChar);
-          memcpy(data->DTrace2, fpPHAWaveform[iBrd]->DTrace2,
-                 fpPHAWaveform[iBrd]->Ns * eleSizeChar);
-
-          fDataVec->push_back(data);
         }
       }
     }

@@ -12,6 +12,9 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT REQUIRED COMPONENTS RIO Net)
 include(${ROOT_USE_FILE})
 
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "-Wall")
+
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project
 # NB: headers are included so they will show up in IDEs
@@ -29,6 +32,3 @@ file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cpp)
 #
 add_executable(digi main.cpp ${sources} ${headers})
 target_link_libraries(digi ${ROOT_LIBRARIES} CAENDigitizer RHTTP)
-
-add_executable(longRecord pa.cpp ${sources} ${headers})
-target_link_libraries(longRecord ${ROOT_LIBRARIES} CAENDigitizer RHTTP)

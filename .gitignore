@@ -45,3 +45,5 @@ work.cpp
 *~
 *.pdf
 memo
+tmp/
+.vscode/

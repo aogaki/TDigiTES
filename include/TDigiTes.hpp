@@ -4,14 +4,18 @@
 #include <CAENDigitizer.h>
 #include <CAENDigitizerType.h>
 
+#include <deque>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "BoardUtils.h"
 #include "Configure.h"
 // #include "Console.h"
 #include "ParamParser.h"
-#include "TPSDData.hpp"
+#include "TreeData.h"
 #include "digiTES.h"
 
 enum class FirmWareCode {
@@ -36,7 +40,7 @@ class TDigiTes
   void OpenDigitizers();
   void CloseDigitizers();
 
-  void InitDigitizers();
+  virtual void InitDigitizers();
 
   void Start();
   void Stop();
@@ -49,11 +53,13 @@ class TDigiTes
   virtual void AllocateMemory() = 0;
   virtual void FreeMemory() = 0;
 
+  // Event readout
+  std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> GetData();
   virtual void ReadEvents() = 0;
+  virtual void StartReadoutMT() = 0;
+  virtual void StopReadoutMT() = 0;
 
-  // void *GetData();
-
-  virtual void UseFineTS() = 0;  // For fine TS
+  virtual void UseFineTS() = 0;
   virtual void UseHWFineTS() = 0;
   virtual void UseTrgCounter(const int mod, const int ch) = 0;
 
@@ -80,6 +86,21 @@ class TDigiTes
   bool fFlagTrgCounter[MAX_NBRD][MAX_NCH];
   double fLostTrgCounter[MAX_NBRD][MAX_NCH];
   uint32_t fLostTrgCounterOffset[MAX_NBRD][MAX_NCH];
+
+  std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> fDataVec;
+
+  typedef std::shared_ptr<std::vector<std::vector<char>>> RawData_t;
+  std::deque<RawData_t> fRawDataQue;
+  virtual void ReadRawData() = 0;
+  virtual void ReadRawDataWrapper() = 0;
+  std::thread fReadThread;
+  virtual void DecodeRawData() = 0;
+  virtual void DecodeRawDataWrapper() = 0;
+  std::thread fDecodeThread;
+  bool fReadoutFlag;
+  std::mutex fMutex;
+  const unsigned int fReadInterval = 100;
+  const unsigned int fDecodeInterval = 10;
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;

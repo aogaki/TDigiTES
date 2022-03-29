@@ -1,10 +1,11 @@
+#include "TDigiTes.hpp"
+
 #include <CAENDigitizer.h>
 
 #include <iostream>
 #include <string>
 
 #include "ErrorCodeMap.hpp"
-#include "TDigiTes.hpp"
 
 TDigiTes::TDigiTes(){};
 
@@ -182,7 +183,7 @@ void TDigiTes::Start()
     }
   }
 
-  sleep(1);
+  fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
 
   StartAcquisition(fWDcfg);
 }
@@ -195,6 +196,14 @@ void TDigiTes::SendSWTrigger()
     auto err = CAEN_DGTZ_SendSWtrigger(fHandler[b]);
     PrintError(err, "SendSWTrigger");
   }
+}
+
+std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> TDigiTes::GetData()
+{
+  std::lock_guard<std::mutex> lock(fMutex);
+  auto retVal = fDataVec;
+  fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
+  return retVal;
 }
 
 // void TDigiTes::SetThreshold()
@@ -211,8 +220,7 @@ void TDigiTes::SendSWTrigger()
 void TDigiTes::PrintError(const CAEN_DGTZ_ErrorCode &err,
                           const std::string &funcName) const
 {
-  // No try and throw
-  // if (true) {  // 0 is success
+  // No try and throw now
   if (err < 0) {  // 0 is success
     std::cout << "In " << funcName << ", error code = " << err << ", "
               << ErrorCodeMap[err] << std::endl;
