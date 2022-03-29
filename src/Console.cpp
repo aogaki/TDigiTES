@@ -14,12 +14,12 @@
 * software, documentation and results solely at his own risk.
 ******************************************************************************/
 
+#include "Console.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
 #include <iostream>
-
-#include "Console.h"
 
 #ifdef linux
 
@@ -257,6 +257,13 @@ int msg_printf(FILE *MsgLog, char *fmt, ...)
   // vprintf(fmt, args);
   // va_end(args);
 
+  std::cout << fmt << std::endl;
+
+  return 0;
+}
+
+int msg_printf(FILE *MsgLog, std::string fmt)
+{
   std::cout << fmt << std::endl;
 
   return 0;

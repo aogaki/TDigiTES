@@ -31,6 +31,8 @@
 #include <termios.h>  /* tcgetattr(), tcsetattr() */
 #include <unistd.h>   /* read() */
 
+#include <string>
+
 #define scanf \
   _scanf  // before calling the scanf function it is necessart to change termios settings
 
@@ -58,6 +60,7 @@ int InitConsole();
 void ClearScreen();
 long get_time();
 int msg_printf(FILE *MsgLog, char *fmt, ...);
+int msg_printf(FILE *MsgLog, std::string str, ...);
 int GetFileUpdateTime(char *fname, uint64_t *ftime);
 int GetString(char *str, int MaxCounts);
 
