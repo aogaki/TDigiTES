@@ -29,7 +29,7 @@ std::map<CAEN_DGTZ_ErrorCode, std::string> ErrorCodeMap{
     {CAEN_DGTZ_Timeout, "Communication Timeout"},
     {CAEN_DGTZ_InvalidBuffer, "The buffer is invalid"},
     {CAEN_DGTZ_EventNotFound, "The event is not found"},
-    {CAEN_DGTZ_InvalidEvent, "The vent is invalid"},
+    {CAEN_DGTZ_InvalidEvent, "The event is invalid"},
     {CAEN_DGTZ_OutOfMemory, "Out of memory"},
     {CAEN_DGTZ_CalibrationError, "Unable to calibrate the board"},
     {CAEN_DGTZ_DigitizerNotFound, "Unable to open the digitizer"},
