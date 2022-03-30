@@ -28,11 +28,12 @@ int WriteSPIRegister(int handle, uint32_t ch, uint32_t address, uint32_t value);
 int LockTempCalibration_x730(int handle, int ch);
 int ReadSPIRegister(int handle, uint32_t ch, uint32_t address, uint32_t *value);
 int SaveRegImage(int handle, Config_t &WDcfg);
-int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg);
-int ForceClockSync(int handle);
-int StartAcquisition(Config_t &WDcfg);
-int StopAcquisition(Config_t &WDcfg);
-int ManualController(Config_t &WDcfg);
-int HVsettings(Config_t &WDcfg, SysVars_t &SysVars);
+int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
+                  const int handle[]);
+int StartAcquisition(Config_t &WDcfg, const int handle[]);
+int StopAcquisition(Config_t &WDcfg, const int handle[]);
 
+// From Console.h
+int getch(void);
+int kbhit();
 #endif

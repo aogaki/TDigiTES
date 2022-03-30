@@ -21,7 +21,6 @@
 
 #include "BoardUtils.h"
 #include "Configure.h"
-#include "Console.h"
 #include "ParamParser.h"
 #include "TDigiTes.hpp"
 #include "TPHA.hpp"

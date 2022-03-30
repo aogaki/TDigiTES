@@ -23,9 +23,8 @@
 //****************************************************************************
 // Function prototypes
 //****************************************************************************
-int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
-                     SysVars_t &SysVars);
-int SetVirtualProbes(int brd, Config_t WDcfg);
-int SetTraceNames(Config_t WDcfg);
-
+int ProgramDigitizer(int brd, Config_t &WDcfg, const int handle[]);
+int SetVirtualProbes(int brd, Config_t WDcfg, const int handle[]);
+int SetTraceNames(Config_t WDcfg, int TraceSet[],
+                  char TraceNames[][MAX_NTRSETS][20]);
 #endif

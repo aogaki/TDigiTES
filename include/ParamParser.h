@@ -17,6 +17,8 @@
 #ifndef _PARAMPARSER_H
 #define _PARAMPARSER_H  // Protect against multiple inclusion
 
+#include <string>
+
 #include "digiTES.h"
 
 //****************************************************************************

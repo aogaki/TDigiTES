@@ -14,10 +14,11 @@
 * software, documentation and results solely at his own risk.
 ******************************************************************************/
 
+#include "BoardUtils.h"
+
 #include <stdio.h>
 
-#include "BoardUtils.h"
-#include "Console.h"
+// #include "Console.h"
 #include "digiTES.h"
 #ifdef WIN32
 #include <process.h>
@@ -184,7 +185,7 @@ int SaveRegImage(int handle, Config_t &WDcfg)
 
   sprintf(fname, "reg_image_%d.txt", handle);
   regs = fopen(fname, "w");
-  if (regs == NULL) return -1;
+  if (regs == nullptr) return -1;
 
   fprintf(regs, "[COMMON REGS]\n");
   for (addr = 0x8000; addr <= 0x8200; addr += 4) {
@@ -239,7 +240,8 @@ int SaveRegImage(int handle, Config_t &WDcfg)
 // Inputs:		b=board index
 // Return:		0=OK, -1=error
 // ---------------------------------------------------------------------------------------------------------
-int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg)
+int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
+                  const int handle[])
 {
   int ret, i;
   uint32_t d32;
@@ -249,7 +251,7 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg)
   /* Once we have the handler to the digitizer, we use it to call the other functions */
   ret = CAEN_DGTZ_GetInfo(handle[b], &BoardInfo);
   if (ret) {
-    msg_printf(MsgLog, "ERROR: Can't read board info\n");
+    printf("ERROR: Can't read board info\n");
     return -1;
   }
 
@@ -294,7 +296,7 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg)
     WDcfg.Tsampl = 10;
     WDcfg.Nbit = 14;
   } else {
-    msg_printf(MsgLog, "ERROR: Unknown digitizer model\n");
+    printf("ERROR: Unknown digitizer model\n");
     return -1;
   }
 
@@ -343,25 +345,25 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg)
     WDcfg.WaveformEnabled = 1;
     strcat(ConnectString, "Std FW, ");
   }
-  msg_printf(MsgLog, "INFO: Brd %d: CAEN Digitizer Model %s (s.n. %d)\n", b,
-             BoardInfo.ModelName, BoardInfo.SerialNumber);
-  msg_printf(MsgLog, "INFO: ROC FPGA: %s\n", BoardInfo.ROC_FirmwareRel);
-  msg_printf(MsgLog, "INFO: AMC FPGA: %s (%s)\n", BoardInfo.AMC_FirmwareRel,
-             WDcfg.FwTypeString);
+  printf("INFO: Brd %d: CAEN Digitizer Model %s (s.n. %d)\n", b,
+         BoardInfo.ModelName, BoardInfo.SerialNumber);
+  printf("INFO: ROC FPGA: %s\n", BoardInfo.ROC_FirmwareRel);
+  printf("INFO: AMC FPGA: %s (%s)\n", BoardInfo.AMC_FirmwareRel,
+         WDcfg.FwTypeString);
   sprintf(ConnectString, "%s %s, %s, ", ConnectString,
           BoardInfo.ROC_FirmwareRel, BoardInfo.AMC_FirmwareRel);
 
   if (IS_DPP_FW(WDcfg.DppType) && (WDcfg.DigitizerModel != 5000)) {
     CAEN_DGTZ_ReadRegister(handle[b], 0x8158, &d32);
     if (d32 == 0x53D4) {
-      msg_printf(MsgLog, "INFO: The DPP is licensed\n");
+      printf("INFO: The DPP is licensed\n");
       strcat(ConnectString, "YES");
     } else {
       if (d32 > 0) {
-        msg_printf(MsgLog, "WARNING: DPP not licensed: %d minutes remaining\n",
-                   (int)((float)d32 / 0x53D4 * 30));
+        printf("WARNING: DPP not licensed: %d minutes remaining\n",
+               (int)((float)d32 / 0x53D4 * 30));
       } else {
-        msg_printf(MsgLog, "ERROR: DPP not licensed: time expired\n\n");
+        printf("ERROR: DPP not licensed: time expired\n\n");
         return -1;
       }
       strcat(ConnectString, "NO");
@@ -372,26 +374,10 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Description: force clock sync in one board
-// Inputs:		b = board index
-// Return:		0=OK, -1=error
-// ---------------------------------------------------------------------------------------------------------
-int ForceClockSync(int b)
-{
-  int ret;
-  Sleep(500);
-  /* Force clock phase alignment */
-  ret = CAEN_DGTZ_WriteRegister(handle[b], 0x813C, 1);
-  /* Wait an appropriate time before proceeding */
-  Sleep(2000);
-  return ret;
-}
-
-// ---------------------------------------------------------------------------------------------------------
 // Description: wait until the acquisition is started
 // Return:		1=Acquisition Started, 0=Acquisition not started -1=error
 // ---------------------------------------------------------------------------------------------------------
-int WaitForAcquisitionStarted(int b)
+int WaitForAcquisitionStarted(int b, const int handle[])
 {
   int ret = 0;
   uint32_t d32;
@@ -416,7 +402,7 @@ int WaitForAcquisitionStarted(int b)
 // Description: start the acquisition
 // Return:		0=OK, -1=error
 // ---------------------------------------------------------------------------------------------------------
-int StartAcquisition(Config_t &WDcfg)
+int StartAcquisition(Config_t &WDcfg, const int handle[])
 {
   int b;
   int Started = 0;
@@ -443,7 +429,7 @@ int StartAcquisition(Config_t &WDcfg)
       printf(
           "Boards armed. Waiting for TRGIN signal to start run (press a key to "
           "force)\n");
-      Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1);
+      Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1, handle);
     }
     if (!Started)
       CAEN_DGTZ_SendSWtrigger(
@@ -465,7 +451,7 @@ int StartAcquisition(Config_t &WDcfg)
       printf(
           "Boards armed. Waiting for SIN/GPI signal to start run (press a key "
           "to force)\n");
-      Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1);
+      Started = WaitForAcquisitionStarted(WDcfg.NumBrd - 1, handle);
       printf("Start done\n");
     }
     if (!Started && (WDcfg.StartMode != START_MODE_SLAVE)) {
@@ -485,7 +471,6 @@ int StartAcquisition(Config_t &WDcfg)
   // string with start time and date
   time(&timer);
   tm_info = localtime(&timer);
-  strftime(Stats.AcqStartTimeString, 26, "%Y-%m-%d %H:%M:%S", tm_info);
 
   return 0;
 }
@@ -494,12 +479,12 @@ int StartAcquisition(Config_t &WDcfg)
 // Description: stop the acquisition
 // Return:		0=OK, -1=error
 // ---------------------------------------------------------------------------------------------------------
-int StopAcquisition(Config_t &WDcfg)
+int StopAcquisition(Config_t &WDcfg, const int handle[])
 {
   int b;
   // Note: in case the SIN-TRGOUT daisy chain is used to start/stop the run, stopping the 1st board will stop the acquisition in all of the boards
   // simultaneously; however, the CAEN_DGTZ_SWStopAcquisition function must be callod for the other boards too because they need to be disarmed
-  msg_printf(MsgLog, "INFO: Stopping Acquisition\n");
+  printf("INFO: Stopping Acquisition\n");
 
   if ((WDcfg.StartMode == START_MODE_SYNCIN_1ST_SW) ||
       (WDcfg.StartMode == START_MODE_SYNCIN_1ST_HW)) {
@@ -514,528 +499,34 @@ int StopAcquisition(Config_t &WDcfg)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Description: Manual Settings of the DC/DC switching frequency in Hexagon
-// Return:		0=OK, -1=error
+//  GETCH
 // ---------------------------------------------------------------------------------------------------------
-int Manage_DCDC()
+int getch(void)
 {
-  int quit = 0, b = 0, ch = 0, c = 0, ret = 0;
-  long time, ptime;
+  unsigned char temp;
 
-  uint32_t m_address = 0xD000;
-  uint32_t f_address = 0xD004;
-  uint32_t d_address = 0xD008;
-
-  uint32_t data = 0;
-
-  uint32_t fcore = 0;
-  uint32_t fvan = 0;
-  uint32_t fvccio = 0;
-  uint32_t fvadc = 0;
-  uint32_t dcore = 0;
-  uint32_t dvan = 0;
-  uint32_t dvccio = 0;
-  uint32_t dvadc = 0;
-  uint32_t en_mask = 0;
-
-  ptime = get_time();
-  time = ptime;
-
-  while (!quit) {
-    c = 0;
-    time = get_time();
-    if ((time - ptime) > 1000) {
-      ptime = time;
-      ClearScreen();
-      //////////////////////
-      //    Data stored   //
-      //////////////////////
-      // Freq
-      CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-      fcore = (data & 0xFF);
-      CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-      fvan = (data & 0xFF00) >> 8;
-      CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-      fvccio = (data & 0xFF0000) >> 16;
-      CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-      fvadc = (data & 0xFF000000) >> 24;
-      // Delay
-      CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-      dcore = (data & 0xFF);
-      CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-      dvan = (data & 0xFF00) >> 8;
-      CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-      dvccio = (data & 0xFF0000) >> 16;
-      CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-      dvadc = (data & 0xFF000000) >> 24;
-      // Mask
-      CAEN_DGTZ_ReadRegister(handle[b], m_address, &data);
-      en_mask = data;
-      printf("\n\nDC-DC Converter Setting Panel\n\n");
-      printf("a   : change f-vcore   %5d [C.C.]\n", (int)fcore);
-      printf("b   : change f-van     %4d [C.C.]\n", (int)fvan);
-      printf("c   : change f-vccio   %6d [C.C.]\n", (int)fvccio);
-      printf("d   : change f-vadc    %5d [C.C.]\n\n", (int)fvadc);
-      printf("e   : change d-vcore   %5d [C.C.]\n", (int)dcore);
-      printf("f   : change d-van     %4d [C.C.]\n", (int)dvan);
-      printf("g   : change d-vccio   %6d [C.C.]\n", (int)dvccio);
-      printf("h   : change d-vadc    %5d [C.C.]\n\n", (int)dvadc);
-      printf("m   : mask ON/OFF  0x%x [Hex]\n", en_mask);
-      printf("q   : Quit DC-DC Converter controller\n\n");
-    }
-    if (kbhit()) c = getch();
-    switch (c) {
-      case 'a':
-        printf("Enter new Vcore frequency [C.C.]: ");
-        scanf("%i", &fcore);
-        CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-        data = (data & 0xFFFFFF00) + fcore;
-        CAEN_DGTZ_WriteRegister(handle[b], f_address, (uint32_t)(data));
-        break;
-      case 'b':
-        printf("Enter new Van frequency [C.C.]: ");
-        scanf("%i", &fvan);
-        CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-        data = (data & 0xFFFF00FF) + (fvan << 8);
-        CAEN_DGTZ_WriteRegister(handle[b], f_address, (uint32_t)(data));
-        break;
-      case 'c':
-        printf("Enter new Vccio frequency [C.C.]: ");
-        scanf("%i", &fvccio);
-        CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-        data = (data & 0xFF00FFFF) + (fvccio << 16);
-        CAEN_DGTZ_WriteRegister(handle[b], f_address, (uint32_t)(data));
-        break;
-      case 'd':
-        printf("Enter new Vadc frequency [C.C.]: ");
-        scanf("%i", &fvadc);
-        CAEN_DGTZ_ReadRegister(handle[b], f_address, &data);
-        data = (data & 0x00FFFFFF) + (fvadc << 24);
-        CAEN_DGTZ_WriteRegister(handle[b], f_address, (uint32_t)(data));
-        break;
-      case 'e':
-        printf("Enter new Delay Vcore: ");
-        scanf("%i", &dcore);
-        CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-        data = (data & 0xFFFFFF00) + dcore;
-        CAEN_DGTZ_WriteRegister(handle[b], d_address, (uint32_t)(data));
-        break;
-      case 'f':
-        printf("Enter new Delay Van: ");
-        scanf("%i", &dvan);
-        CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-        data = (data & 0xFFFF00FF) + (dvan << 8);
-        CAEN_DGTZ_WriteRegister(handle[b], d_address, (uint32_t)(data));
-        break;
-      case 'g':
-        printf("Enter new Delay Van: ");
-        scanf("%i", &dvccio);
-        CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-        data = (data & 0xFF00FFFF) + (dvccio << 16);
-        CAEN_DGTZ_WriteRegister(handle[b], d_address, (uint32_t)(data));
-        break;
-      case 'h':
-        printf("Enter new Delay Vadc: ");
-        scanf("%i", &dvadc);
-        CAEN_DGTZ_ReadRegister(handle[b], d_address, &data);
-        data = (data & 0x00FFFFFF) + (dvadc << 24);
-        CAEN_DGTZ_WriteRegister(handle[b], d_address, (uint32_t)(data));
-        break;
-      case 'm':
-        printf("Enter Enable mask: ");
-        scanf("%x", &en_mask);
-        CAEN_DGTZ_WriteRegister(handle[b], m_address, (uint32_t)(en_mask));
-        break;
-      case 'q':
-        quit = 1;
-      default:
-        break;
-    }
-    Sleep(100);
-  }
-  return 0;
+  /* stdin = fd 0 */
+  if (read(0, &temp, 1) != 1) return 0;
+  return temp;
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Description: Manual Control for a direct access to the board regsiters and for other funtions
-// Return:		0=OK, -1=error
+//  KBHIT
 // ---------------------------------------------------------------------------------------------------------
-int ManualController(Config_t &WDcfg)
+int kbhit()
 {
-  int b = 0, c, qmc = 0, lastop = 0;
-  char lops[100];
-  char *buff;
-  uint32_t rdata[MAX_NBRD];
-  uint32_t nb;
-  uint64_t tnb = 0;
-  long time, ptime;
-  uint32_t ra, rd;
+  struct timeval timeout;
+  fd_set read_handles;
+  int status;
 
-  while (!qmc) {
-    ClearScreen();
-    printf("\n\nManual R/W access\n\n");
-    printf("Board %d:\n", b);
-    printf("w : Write register\n");
-    printf("r : Read register\n");
-    printf("o : Repeat last operation\n");
-    printf("i : Write Register Image\n");
-    printf("t : Throughput Test\n");
-    printf("k : Propagate CLK to trgout on all boards\n");
-    printf("b : Change board\n");
-    printf("d : Open DC/DC control panel (for Hexagon only)\n");
-    printf("q : Quit manual register access\n\n");
-    if (lastop > 0) {
-      int i;
-      printf("Last Operation: %s Addr 0x%04X,  Data = 0x%08X (%d dec)\n\n",
-             lops, ra, rd, rd);
-      printf(
-          "  31      27      23      19      15      11       7       3      "
-          "\n");
-      printf(
-          "   |       |       |       |       |       |       |       |      "
-          "\n");
-      printf("  ");
-      for (i = 31; i >= 0; i--) {
-        printf("%2d", (rd >> i) & 1);
-      }
-      printf("\n");
-    }
-    c = getch();
-
-    switch (c) {
-      case 'k':
-        // propagate CLK to trgout on all boards
-        for (b = 0; b < WDcfg.NumBrd; b++) {
-          CAEN_DGTZ_ReadRegister(handle[b], CAEN_DGTZ_FRONT_PANEL_IO_CTRL_ADD,
-                                 &rdata[b]);
-          CAEN_DGTZ_WriteRegister(handle[b], CAEN_DGTZ_FRONT_PANEL_IO_CTRL_ADD,
-                                  0x00050000);
-        }
-        printf("Trigger Clk is now output on TRGOUT.\n");
-        printf(
-            "Press [r] to reload PLL config, any other key to quit clock "
-            "monitor\n");
-        while ((c = getch()) == 'r') {
-          //CAEN_DGTZ_WriteRegister(handle[0], 0xEF34, 0);
-          ForceClockSync(handle[0]);
-          printf("PLL reloaded\n");
-        }
-        for (b = 0; b < WDcfg.NumBrd; b++)
-          CAEN_DGTZ_WriteRegister(handle[b], CAEN_DGTZ_FRONT_PANEL_IO_CTRL_ADD,
-                                  rdata[b]);
-        break;
-
-      case 't':
-        ClearScreen();
-        printf("Readout Bandwidth Test. Press a key to stop\n");
-        buff = (char *)malloc(8 * 1024 * 1024);
-        ptime = get_time();
-        while (!kbhit()) {
-          for (b = 0; b < WDcfg.NumBrd; b++) {
-            CAEN_DGTZ_ReadData(
-                handle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buff, &nb);
-            tnb += nb;
-          }
-          time = get_time();
-          if ((time - ptime) > 1000) {
-            printf("Readout Rate = %.3f MB/s\n",
-                   ((float)tnb / (1024 * 1024)) / ((time - ptime) / 1000));
-            ptime = time;
-            tnb = 0;
-          }
-        }
-        free(buff);
-        ClearScreen();
-        c = getch();
-        break;
-
-      case 'q':
-        qmc = 1;
-        break;
-
-      case 'i':
-        for (b = 0; b < WDcfg.NumBrd; b++) {
-          printf("Saving Register Images to file reg_image_%d.txt...", b);
-          if (SaveRegImage(handle[b], WDcfg) < 0)
-            printf(" Failed!\n\n");
-          else
-            printf(" Done.\n\n");
-        }
-        break;
-
-      case 'r':
-        printf("Enter Register Address (16 bit hex) : ");
-        scanf("%x", &ra);
-        CAEN_DGTZ_ReadRegister(handle[b], ra, &rd);
-        sprintf(lops, "Read from ");
-        lastop = 1;
-        break;
-
-      case 'w':
-        printf("Enter Register Address (16 bit hex) : ");
-        scanf("%x", &ra);
-        printf("Enter Register Data (32 bit hex) : ");
-        scanf("%x", &rd);
-        sprintf(lops, "Write to  ");
-        lastop = 2;
-        CAEN_DGTZ_WriteRegister(handle[b], ra, rd);
-        break;
-
-      case 'o':
-        if (lastop == 1)
-          CAEN_DGTZ_ReadRegister(handle[b], ra, &rd);
-        else
-          CAEN_DGTZ_WriteRegister(handle[b], ra, rd);
-
-      case 'b':
-        if (c == 'b') {
-          printf("Enter Board number : ");
-          scanf("%d", &b);
-        }
-        break;
-
-      case 'd':
-        Manage_DCDC();
-        break;
-
-      default:
-        break;
-    }
+  /* check stdin (fd 0) for activity */
+  FD_ZERO(&read_handles);
+  FD_SET(0, &read_handles);
+  timeout.tv_sec = timeout.tv_usec = 0;
+  status = select(0 + 1, &read_handles, nullptr, nullptr, &timeout);
+  if (status < 0) {
+    printf("select() failed in kbhit()\n");
+    exit(1);
   }
-  printf("Quitting Manual Controller\n");
-  return 0;
-}
-
-static int HVstatus_String(uint32_t status, uint32_t ctrl, char *StatString)
-{
-  if (status & (1 << 10))
-    sprintf(StatString, "Inhibit");
-  else if (status & (1 << 9))
-    sprintf(StatString, "OverTemp");
-  else if (status & (1 << 7))
-    sprintf(StatString, "MaxCurrent");
-  else if (status & (1 << 6))
-    sprintf(StatString, "MaxVoltage");
-  else if (status & (1 << 5))
-    sprintf(StatString, "UnderVoltage");
-  else if (status & (1 << 4))
-    sprintf(StatString, "OverVoltage");
-  else if (status & (1 << 3))
-    sprintf(StatString, "OverCurrent");
-  else if (status & (1 << 2))
-    sprintf(StatString, "RampDown");
-  else if (status & (1 << 1))
-    sprintf(StatString, "RampUp");
-  else if ((status & 1) && (ctrl & 1))
-    sprintf(StatString, "ON");
-  else
-    sprintf(StatString, "OFF");
-  return 0;
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// Description: High Voltage controller (for DT5780/DT5790 and Hexagon only)
-// Return:		0=OK, -1=error
-// ---------------------------------------------------------------------------------------------------------
-int HVsettings(Config_t &WDcfg, SysVars_t &SysVars)
-{
-  int quit = 0, c = 0, ret = 0, bb, cc;
-  static int ch, b, InitHV = 1;
-  uint32_t vset_addr, iset_addr, rampup_addr, rampdn_addr, vmax_addr, ctrl_addr,
-      stat_addr, imon_addr, vmon_addr, temp_addr;
-  uint32_t d32, status, ctrl, temp;
-  // voltages are expressed in V, currents in uA, ramps in V/s,
-  double vset, iset, vmax, rampup, rampdn, vmon, imon;
-  double vset_m, iset_m, vmax_m, vmon_m, imon_m, ramp_m;
-  double vset_q, iset_q, vmax_q, vmon_q, imon_q;
-  long time, ptime;
-  char StatString[100];
-
-  int IsHexagon =
-      ((WDcfg.DigitizerModel == 780) || (WDcfg.DigitizerModel == 781) ||
-       (WDcfg.DigitizerModel == 790))
-          ? 0
-          : 1;
-
-  vset_addr = IsHexagon ? 0x10D8 : 0x1220;
-  iset_addr = IsHexagon ? 0x10DC : 0x1224;
-  rampup_addr = IsHexagon ? 0x10E0 : 0x1228;
-  rampdn_addr = IsHexagon ? 0x10E4 : 0x122C;
-  vmax_addr = IsHexagon ? 0x10E8 : 0x1230;
-  ctrl_addr = IsHexagon ? 0x10EC : 0x1234;
-  stat_addr = IsHexagon ? 0x10F0 : 0x1238;
-  vmon_addr = IsHexagon ? 0x10F4 : 0x1240;
-  imon_addr = IsHexagon ? 0x10F8 : 0x1244;
-  temp_addr = 0x10FC;  // only for Hexagon
-
-  vset_m = IsHexagon ? 0.113 : 0.1;  // V
-  vset_q = IsHexagon ? -45 : 0;
-  vmon_m = IsHexagon ? 0.11 : 0.1;  // V
-  vmon_q = IsHexagon ? -440 : 0;
-  iset_m = IsHexagon ? 0.0064 : 0.01;  // uA
-  iset_q = IsHexagon ? -3.1 : 0;
-  imon_m = IsHexagon ? 0.0064 : 0.01;  // uA
-  imon_q = IsHexagon ? -23 : 0;
-  vmax_m = IsHexagon ? vset_m : 20;  // V
-  vmax_q = IsHexagon ? vset_q : 0;
-  ramp_m = IsHexagon ? 50 * vset_m : 1;  // V/s
-
-  if (WDcfg.DigitizerModel == 790) {
-    iset_m *= 5;
-    imon_m *= 5;
-  }
-
-  ptime = get_time();
-  time = ptime;
-
-  // Set HV parameters (read from the config file)
-  if (InitHV) {
-    InitHV = 0;
-    for (bb = 0; bb < WDcfg.NumBrd; bb++) {
-      for (cc = 0; cc < WDcfg.NumPhyCh; cc++) {
-        if (SysVars.HVmax > 0)
-          ret |= CAEN_DGTZ_WriteRegister(
-              handle[bb], vmax_addr + (cc << 8),
-              (uint32_t)(0.5 + (SysVars.HVmax - vmax_q) / vmax_m));
-        if (WDcfg.HV_Vset[bb][cc] > 0)
-          ret |= CAEN_DGTZ_WriteRegister(
-              handle[bb], vset_addr + (cc << 8),
-              (uint32_t)(0.5 + (WDcfg.HV_Vset[bb][cc] - vset_q) / vset_m));
-        if (WDcfg.HV_Iset[bb][cc] > 0)
-          ret |= CAEN_DGTZ_WriteRegister(
-              handle[bb], iset_addr + (cc << 8),
-              (uint32_t)(0.5 + (WDcfg.HV_Iset[bb][cc] - iset_q) / iset_m));
-        if (WDcfg.HV_RampUp[bb][cc] > 0)
-          ret |= CAEN_DGTZ_WriteRegister(
-              handle[bb], rampup_addr + (cc << 8),
-              (uint32_t)(0.5 + WDcfg.HV_RampUp[bb][cc] / ramp_m));
-        if (WDcfg.HV_RampDown[bb][cc] > 0)
-          ret |= CAEN_DGTZ_WriteRegister(
-              handle[bb], rampdn_addr + (cc << 8),
-              (uint32_t)(0.5 + WDcfg.HV_RampDown[bb][cc] / ramp_m));
-        if (ret) {
-          msg_printf(MsgLog,
-                     "Error in accessing the High Voltage registers. Press a "
-                     "key...\n");
-          getch();
-          return -1;
-        }
-      }
-    }
-  }
-
-  while (!quit) {
-    c = 0;
-    time = get_time();
-    if ((time - ptime) > 1000) {
-      ptime = time;
-      ClearScreen();
-      CAEN_DGTZ_ReadRegister(handle[b], vset_addr + (ch << 8), &d32);
-      vset = d32 * vset_m + vset_q;
-      if (vset < 0) vset = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], iset_addr + (ch << 8), &d32);
-      iset = d32 * iset_m + iset_q;
-      if (iset < 0) iset = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], vmax_addr + (ch << 8), &d32);
-      vmax = d32 * vmax_m + vmax_q;
-      if (vmax < 0) vmax = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], rampup_addr + (ch << 8), &d32);
-      rampup = d32 * ramp_m;
-      if (rampup < 0) rampup = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], rampdn_addr + (ch << 8), &d32);
-      rampdn = d32 * ramp_m;
-      if (rampdn < 0) rampdn = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], vmon_addr + (ch << 8), &d32);
-      vmon = d32 * vmon_m + vmon_q;
-      if (vmon < 0) vmon = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], imon_addr + (ch << 8), &d32);
-      imon = d32 * imon_m + imon_q;
-      if (imon < 0) imon = 0;
-      CAEN_DGTZ_ReadRegister(handle[b], stat_addr + (ch << 8), &status);
-      CAEN_DGTZ_ReadRegister(handle[b], ctrl_addr + (ch << 8), &ctrl);
-      CAEN_DGTZ_ReadRegister(handle[b], temp_addr + (ch << 8), &temp);
-
-      if (IsHexagon)
-        status &= ~(
-            1
-            << 4);  // HACK: the current firmware has a bug on the OverVoltage bit
-
-      HVstatus_String(status, ctrl, StatString);
-      printf("\n\nHV Setting Panel\n\n");
-      printf("Channel %d - Board %d:\n", ch, b);
-      printf("v : Vset        %7.2f V  (Vmon = %7.2f V)\n", vset, vmon);
-      if (iset < 1)
-        printf("i : Iset        %7.2f nA (Imon = %7.2f nA)\n", iset * 1000,
-               imon * 1000);
-      else
-        printf("i : Iset        %7.2f uA (Imon = %7.2f uA)\n", iset, imon);
-      printf("m : Vmax        %4d V\n", (int)vmax);
-      printf("u : Ramp Up     %4d V/s\n", (int)rampup);
-      printf("d : Ramp Down   %4d V/s\n", (int)rampdn);
-      printf("1 : ON\n");
-      printf("0 : OFF\n");
-      printf("c : Change Channel\n");
-      printf("b : Change Board\n");
-      printf("q : Quit HV controller\n\n");
-      printf("Status      %s\n", StatString);
-      if (IsHexagon) printf("Temperature = %d deg\n", temp & 0xFF);
-    }
-    if (kbhit()) c = getch();
-    switch (c) {
-      case 'v':
-        printf("Enter new Vset (V): ");
-        scanf("%lf", &vset);
-        CAEN_DGTZ_WriteRegister(handle[b], vset_addr + (ch << 8),
-                                (uint32_t)((vset - vset_q) / vset_m));
-        break;
-      case 'i':
-        printf("Enter new Iset (uA): ");
-        scanf("%lf", &iset);
-        CAEN_DGTZ_WriteRegister(handle[b], iset_addr + (ch << 8),
-                                (uint32_t)((iset - iset_q) / iset_m));
-        break;
-      case 'm':
-        printf("Enter new Vmax (V): ");
-        scanf("%lf", &vmax);
-        CAEN_DGTZ_WriteRegister(handle[b], vmax_addr + (ch << 8),
-                                (uint32_t)((vmax - vmax_q) / vmax_m));
-        break;
-      case 'u':
-        printf("Enter new RampUp (V/s): ");
-        scanf("%lf", &rampup);
-        CAEN_DGTZ_WriteRegister(handle[b], rampup_addr + (ch << 8),
-                                (uint32_t)(rampup / ramp_m));
-        break;
-      case 'd':
-        printf("Enter new RampDown (V/s): ");
-        scanf("%lf", &rampdn);
-        CAEN_DGTZ_WriteRegister(handle[b], rampdn_addr + (ch << 8),
-                                (uint32_t)(rampdn / ramp_m));
-        break;
-      case '1':
-        CAEN_DGTZ_ReadRegister(handle[b], ctrl_addr + (ch << 8), &ctrl);
-        ctrl |= 1;
-        CAEN_DGTZ_WriteRegister(handle[b], ctrl_addr + (ch << 8), ctrl);
-        break;
-      case '0':
-        CAEN_DGTZ_ReadRegister(handle[b], ctrl_addr + (ch << 8), &ctrl);
-        ctrl &= 0xFFFFFFFE;
-        CAEN_DGTZ_WriteRegister(handle[b], ctrl_addr + (ch << 8), ctrl);
-        break;
-      case 'c':
-        printf("Enter new channel: ");
-        scanf("%d", &ch);
-        break;
-      case 'b':
-        printf("Enter new board: ");
-        scanf("%d", &b);
-        break;
-      case 'q':
-        quit = 1;
-      default:
-        break;
-    }
-    Sleep(100);
-  }
-  return 0;
+  return (status);
 }

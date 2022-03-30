@@ -14,12 +14,14 @@
 * software, documentation and results solely at his own risk.
 ******************************************************************************/
 
+#include "ParamParser.h"
+
 #include <CAENDigitizer.h>
 
 #include <iostream>
+#include <sstream>
 
-#include "Console.h"
-#include "ParamParser.h"
+// #include "Console.h"
 #include "digiTES.h"
 
 int load_default = 1;
@@ -33,7 +35,8 @@ int ValidParameterName = 0;
 // Outputs:		-
 // Return:		1=equal, 0=not equal
 // ---------------------------------------------------------------------------------------------------------
-int streq(char *str1, char *str2)
+
+int streq(const char *str1, const char *str2)
 {
   if (strcmp(str1, str2) == 0) {
     ValidParameterName = 1;
@@ -42,7 +45,6 @@ int streq(char *str1, char *str2)
     return 0;
   }
 }
-
 // ---------------------------------------------------------------------------------------------------------
 // Description: Read an integer (decimal) from the conig file
 // Inputs:		f_ini: config file
@@ -64,7 +66,8 @@ int GetInt(FILE *f_ini)
 // Outputs:		-
 // Return:		time value (in ns) read from the file
 // ---------------------------------------------------------------------------------------------------------
-float GetTime(FILE *f_ini, char *tu)
+// float GetTime(FILE *f_ini, char *tu)
+float GetTime(FILE *f_ini, const char *tu)
 {
   double timev, ns;
   long fp;
@@ -393,7 +396,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
 
   // search for baseline calibration file (used with standard FW to refer the trigger threshold to the baseline, that is the zero of the signal)
   fcal = fopen("bslcal.txt", "r");
-  if (fcal != NULL) {
+  if (fcal != nullptr) {
     int br, ch, bz, r, i;
     while (!feof(fcal)) {
       r = fscanf(fcal, "%d", &br);
@@ -409,21 +412,21 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       }
     }
   }
-/*
-  // append cfg file to _cfg.txt
-  if (load_default)
-    fcfg = fopen("_cfg.txt", "w");
-  else
-    fcfg = fopen("_cfg.txt", "a");
-  while ((fcfg != NULL) && (!feof(f_ini))) {
-    char line[1000], str[100];
-    fgets(line, 1000, f_ini);
-    sscanf(line, "%s", str);
-    if ((str[0] != '#') && (!streq(str, "Load"))) fputs(line, fcfg);
-  }
-  fclose(fcfg);
-  rewind(f_ini);
-*/
+  /*
+    // append cfg file to _cfg.txt
+    if (load_default)
+      fcfg = fopen("_cfg.txt", "w");
+    else
+      fcfg = fopen("_cfg.txt", "a");
+    while ((fcfg != nullptr) && (!feof(f_ini))) {
+      char line[1000], str[100];
+      fgets(line, 1000, f_ini);
+      sscanf(line, "%s", str);
+      if ((str[0] != '#') && (!streq(str, "Load"))) fputs(line, fcfg);
+    }
+    fclose(fcfg);
+    rewind(f_ini);
+  */
 
   /* read config file and assign parameters */
   while (!feof(f_ini)) {
@@ -447,7 +450,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     if (streq(str, "RunNumberInDataFiles") || streq(str, "AntiCoincidence") ||
         streq(str, "EHmin") || streq(str, "EHmax")) {
       fgets(str, 1000, f_ini);  // read line
-      msg_printf(MsgLog, "WARNING: %s: discontinued\n", str);
+      printf("WARNING: %s: discontinued\n", str);
     }
 
     // skip comments
@@ -467,29 +470,29 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     // Section (COMMON or individual channel)
     if (str[0] == '[') {
       ValidParameterName = 1;
-      if (strstr(str, "COMMON") != NULL) {
+      if (strstr(str, "COMMON") != nullptr) {
         ch = -1;
         brd = -1;
-      } else if (strstr(str, "BOARD") != NULL) {
+      } else if (strstr(str, "BOARD") != nullptr) {
         ch = -1;
         fscanf(f_ini, "%s", str1);
         sscanf(str1, "%d", &val);
         if (val < 0 || val >= MAX_NBRD)
-          msg_printf(MsgLog, "%s: Invalid board number\n", str);
+          printf("%s: Invalid board number\n", str);
         else
           brd = val;
-      } else if (strstr(str, "CHANNEL") != NULL) {
+      } else if (strstr(str, "CHANNEL") != nullptr) {
         fscanf(f_ini, "%s", str1);
         sscanf(str1, "%d", &val);
         if (val < 0 || val >= MAX_NCH)
-          msg_printf(MsgLog, "%s: Invalid channel number\n", str);
+          printf("%s: Invalid channel number\n", str);
         if ((brd == -1) && (WDcfg->NumBrd == 1))
           brd = 0;
         else
           ch = val;
-      } else if (strstr(str, "JOBEND") != NULL) {
+      } else if (strstr(str, "JOBEND") != nullptr) {
         continue;
-      } else if (strstr(str, "JOB") != NULL) {
+      } else if (strstr(str, "JOB") != nullptr) {
         fscanf(f_ini, "%s", str1);
         sscanf(str1, "%d", &val);
         if (val != jobrun) {
@@ -503,19 +506,18 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       FILE *cf;
       fscanf(f_ini, "%s", str1);
       cf = fopen(str1, "r");
-      if (cf != NULL) {
+      if (cf != nullptr) {
         load_default = 0;
         ParseConfigFile(cf, WDcfg, SysVars);
         fclose(cf);
         load_default = 1;
       } else {
-        msg_printf(MsgLog, "Can't open secondary config file %s\n", str1);
+        printf("Can't open secondary config file %s\n", str1);
       }
     }
     if (streq(str, "Open")) {
       if (brd == -1) {
-        msg_printf(
-            MsgLog,
+        printf(
             "%s: cannot be a common setting (must be in a [BOARD] section)\n",
             str);
         fgets(str1, 1000, f_ini);
@@ -528,7 +530,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         else if (streq(str1, "VIRTUAL"))
           WDcfg->LinkType[brd] = VIRTUAL_BOARD_TYPE;
         else
-          msg_printf(MsgLog, "%s: invalid setting for %s\n", str1, str);
+          printf("%s: invalid setting for %s\n", str1, str);
 
         WDcfg->LinkNum[brd] = GetInt(f_ini);
         if (WDcfg->LinkType[brd] == CAEN_DGTZ_USB)
@@ -548,10 +550,10 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         fscanf(f_ini, "%x", (int *)&WDcfg->GWmask[WDcfg->GWn]);
         WDcfg->GWn++;
       } else {
-        msg_printf(MsgLog,
-                   "WARNING: MAX_GW Generic Write exceeded (%d). Change MAX_GW "
-                   "and recompile\n",
-                   MAX_GW);
+        printf(
+            "WARNING: MAX_GW Generic Write exceeded (%d). Change MAX_GW "
+            "and recompile\n",
+            MAX_GW);
       }
     }
     if (streq(str, "WriteRegisterBits")) {
@@ -567,10 +569,10 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
             ((uint32_t)data << start) & WDcfg->GWmask[WDcfg->GWn];
         WDcfg->GWn++;
       } else {
-        msg_printf(MsgLog,
-                   "WARNING: MAX_GW Generic Write exceeded (%d). Change MAX_GW "
-                   "and recompile\n",
-                   MAX_GW);
+        printf(
+            "WARNING: MAX_GW Generic Write exceeded (%d). Change MAX_GW "
+            "and recompile\n",
+            MAX_GW);
       }
     }
     if (streq(str, "AcquisitionMode")) {
@@ -588,11 +590,11 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "EMULATOR_LIST"))
         WDcfg->AcquisitionMode = ACQ_MODE_EMULATOR_LIST;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "TriggerMode")) {
       fscanf(f_ini, "%s", str1);
-      msg_printf(MsgLog, "WARNING: %s: discontinued\n", str);
+      printf("WARNING: %s: discontinued\n", str);
     }  // discontinued
     if (streq(str, "StartMode")) {
       fscanf(f_ini, "%s", str1);
@@ -609,7 +611,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "SYNCIN_SLAVE"))
         WDcfg->StartMode = START_MODE_SLAVE;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "TrginMode")) {
       fscanf(f_ini, "%s", str1);
@@ -627,7 +629,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "COINC"))
         WDcfg->TrginMode = TRGIN_MODE_COINC;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "SyncinMode")) {
       fscanf(f_ini, "%s", str1);
@@ -638,7 +640,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "RUN_CTRL"))
         WDcfg->SyncinMode = SYNCIN_MODE_RUN_CTRL;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "TrgoutMode")) {
       fscanf(f_ini, "%s", str1);
@@ -663,7 +665,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "SIGSCOPE"))
         WDcfg->TrgoutMode = TRGOUT_SIGSCOPE;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "CoincMode")) {
       fscanf(f_ini, "%s", str1);
@@ -697,7 +699,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "OR_ALL"))
         WDcfg->CoincMode = COINC_OR_ALL;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "DiscrMode")) {
       fscanf(f_ini, "%s", str1);
@@ -730,7 +732,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "3"))
         SetChannelParam(WDcfg->DiscrMode, 3);
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "OutFileFormat")) {
       fscanf(f_ini, "%s", str1);
@@ -739,7 +741,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "ASCII"))
         WDcfg->OutFileFormat = OUTFILE_ASCII;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "InputFileType")) {
       fscanf(f_ini, "%s", str1);
@@ -750,7 +752,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "ASCII_LIST"))
         WDcfg->InputFileType = INPUTFILE_ASCII_LIST;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "HistoOutputFormat")) {
       fscanf(f_ini, "%s", str1);
@@ -761,7 +763,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "ANSI_42"))
         WDcfg->HistoOutputFormat = HISTO_FILE_FORMAT_ANSI42;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "TspectrumMode")) {
       fscanf(f_ini, "%s", str1);
@@ -770,7 +772,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "INTERVALS"))
         WDcfg->TspectrumMode = TAC_SPECTRUM_INTERVALS;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "ScatterPlotMode")) {
       fscanf(f_ini, "%s", str1);
@@ -781,7 +783,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "E_VS_DELTAE"))
         WDcfg->ScatterPlotMode = SCATTER_E_VS_DELTAE;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "EventBuildMode")) {
       fscanf(f_ini, "%s", str1);
@@ -803,13 +805,11 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         if (np >= 1) WDcfg->CloverNch = p1;
         if (np >= 2) WDcfg->CloverMajority = p2;
         if ((WDcfg->CloverNch <= 0) || (WDcfg->CloverNch > 16)) {
-          msg_printf(
-              MsgLog,
-              "WARNING: Invalid Num of Ch for the Clover. Forced to 4\n");
+          printf("WARNING: Invalid Num of Ch for the Clover. Forced to 4\n");
           WDcfg->CloverNch = 4;
         }
       } else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "FPIOtype")) {
       fscanf(f_ini, "%s", str1);
@@ -818,7 +818,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "NIM"))
         WDcfg->FPIOtype = CAEN_DGTZ_IOLevel_NIM;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "EnergyCoarseGain")) {
       float cg;
@@ -851,7 +851,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "s"))
         WDcfg->OutFileTimeStampUnit = 4;
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
 
     if (streq(str, "JobRuns")) {
@@ -892,7 +892,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
       else if (streq(str1, "POSITIVE"))
         SetChannelParam(WDcfg->PulsePolarity, CAEN_DGTZ_PulsePolarityPositive);
       else
-        msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1, str);
+        printf("WARNING: %s: invalid setting for %s\n", str1, str);
     }
     if (streq(str, "RunNumber")) {
       fscanf(f_ini, "%s", str1);
@@ -903,8 +903,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         if (sscanf(str1, "%d", &rn) == 1)
           WDcfg->RunNumber = rn;
         else
-          msg_printf(MsgLog, "WARNING: %s: invalid setting for %s\n", str1,
-                     str);
+          printf("WARNING: %s: invalid setting for %s\n", str1, str);
       }
     }
     if (streq(str, "InputDataFileName"))
@@ -1100,7 +1099,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     if (streq(str, "IPEdecay")) SetChannelParam(WDcfg->IPEdecay, GetInt(f_ini));
 
     if (!ValidParameterName) {
-      msg_printf(MsgLog, "WARNING: %s: unkwown parameter\n", str);
+      printf("WARNING: %s: unkwown parameter\n", str);
       fgets(str, (int)strlen(str) - 1, f_ini);
     }
   }
@@ -1140,18 +1139,18 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     }
   }
 
-/*
-  // Load Run Number from file
-  if ((jobrun < 0) && (load_default && WDcfg->AutoRunNumber)) {
-    runnum = fopen("RunNumber.txt", "r");
-    if (runnum != NULL) {
-      fscanf(runnum, "%d", &WDcfg->RunNumber);
-      fclose(runnum);
+  /*
+    // Load Run Number from file
+    if ((jobrun < 0) && (load_default && WDcfg->AutoRunNumber)) {
+      runnum = fopen("RunNumber.txt", "r");
+      if (runnum != nullptr) {
+        fscanf(runnum, "%d", &WDcfg->RunNumber);
+        fclose(runnum);
+      }
     }
-  }
-  runnum = fopen("RunNumber.txt", "w");
-  fprintf(runnum, "%d", WDcfg->RunNumber + 1);
-  fclose(runnum);
-*/
+    runnum = fopen("RunNumber.txt", "w");
+    fprintf(runnum, "%d", WDcfg->RunNumber + 1);
+    fclose(runnum);
+  */
   return 0;
 }

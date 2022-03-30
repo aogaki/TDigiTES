@@ -326,18 +326,6 @@ typedef struct {
 } Histogram2D_t;
 
 //****************************************************************************
-// Struct containing the histograms (Energy, Time, PSD, etc...)
-//****************************************************************************
-typedef struct {
-  Histogram1D_t EH[MAX_NBRD][MAX_NCH];      // Energy Histograms
-  Histogram1D_t TH[MAX_NBRD][MAX_NCH];      // Time Histograms
-  Histogram1D_t SH[MAX_NBRD][MAX_NCH];      // Sample Histograms
-  Histogram1D_t MCSH[MAX_NBRD][MAX_NCH];    // MCS Histograms
-  Histogram1D_t PSDH[MAX_NBRD][MAX_NCH];    // PSD Histograms
-  Histogram2D_t PSDvsE[MAX_NBRD][MAX_NCH];  // PSD vs Energy 2D Histograms
-} Histos_t;
-
-//****************************************************************************
 // digiTES System Variables (not defined by the user)
 //****************************************************************************
 typedef struct {
@@ -355,119 +343,6 @@ typedef struct {
   int HVmax;                   // Maximum High Voltage
   char GnuplotCmd[500];        // path and command to open gnuplot
 } SysVars_t;
-
-//****************************************************************************
-// Struct containing variables for the statistics (counters, times, etc...)
-//****************************************************************************
-typedef struct {
-  // ----------------------------------
-  // Counters and Rates
-  // ----------------------------------
-  // Each counter has two instances: total counter and previous value used to calculate the rate: Rate = (Counter - PrevCounter)/elapsed_time
-  // after the rate calculation, PrevCounter is updated to the value of Counter
-  uint64_t RxByte_cnt;   // Received Byte counter (data from board)
-  uint64_t RxByte_pcnt;  // Previous value
-  float RxByte_rate;     // Data Throughput in KB/s (from boards or from files)
-  uint64_t BlockRead_cnt;  // BlockRead counter
-
-  uint64_t EvRead_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Event Counter at board output (throughput); number of event read from the channel
-  uint64_t EvRead_pcnt[MAX_NBRD][MAX_NCH];
-  uint64_t EvRead_dcnt[MAX_NBRD][MAX_NCH];  // cnt - pcnt
-  float EvRead_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvProcessed_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Event Processed (extracted from the queues). It is almost the same as EvRead_cnt but delayed (it doesn't count the events still in the queues)
-  uint64_t EvProcessed_pcnt[MAX_NBRD][MAX_NCH];
-  //float EvProcessed_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvInput_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Event Counter at board input (ICR): number of event detected by the input discriminator
-  uint64_t EvInput_pcnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Note: ICR may differ from ICRB because of the inability of the discriminator to distinguish two close pulses
-  float EvInput_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvFilt_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Event Counter after the software filters (cuts & correlation; PUR is counted separately)
-  uint64_t EvFilt_pcnt[MAX_NBRD][MAX_NCH];
-  float EvFilt_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvPileUp_cnt[MAX_NBRD]
-                       [MAX_NCH];  // Counter of the events tagged as pile-up;
-  uint64_t EvPileUp_pcnt[MAX_NBRD][MAX_NCH];
-  float EvPileUp_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvOvf_cnt[MAX_NBRD]
-                    [MAX_NCH];  // Counter of the events tagged as overflow;
-  uint64_t EvOvf_pcnt[MAX_NBRD][MAX_NCH];
-  float EvOvf_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvUncorrel_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Counter of the events tagged as "uncorrelated" (either vetoed or not matching the coicidence criteria)
-  uint64_t EvUncorrel_pcnt
-      [MAX_NBRD]
-      [MAX_NCH];  // NOTE: typically these events are discarded by the board; in some FW, there is an option to save and tag them)
-  float EvUncorrel_rate[MAX_NBRD][MAX_NCH];
-  uint64_t EvLost_cnt
-      [MAX_NBRD]
-      [MAX_NCH];  // Counter of the events lost (either in the HW or in the SW queues)
-  uint64_t EvLost_pcnt[MAX_NBRD][MAX_NCH];
-  float EvLost_rate[MAX_NBRD][MAX_NCH];
-  uint64_t Satur_cnt[MAX_NBRD][MAX_NCH];  // Counter of the saturated events
-  uint64_t Satur_pcnt[MAX_NBRD][MAX_NCH];
-  float Satur_rate[MAX_NBRD][MAX_NCH];
-  float DeadTime[MAX_NBRD]
-                [MAX_NCH];  // Dead Time (float number in the range 0 to 1)
-  float MatchingRatio
-      [MAX_NBRD]
-      [MAX_NCH];  // Matching Ratio after the filters (cuts & correlation)
-  float EvOutput_rate[MAX_NBRD][MAX_NCH];  // OCR
-
-  uint64_t BusyTimeGap
-      [MAX_NBRD]
-      [MAX_NCH];  // Sum of the DeadTime Gaps (saturation or busy); this is a real dead time (loss of triggers); it doesn't include dead time for pile-ups
-  float BusyTime[MAX_NBRD][MAX_NCH];  // Percent of BusyTimeGap
-
-  uint64_t
-      TotEvRead_cnt;  // Total Event read from the boards (sum of all channels)
-
-  // Times
-  uint64_t StartTime;  // Computer time at the start of the acquisition in ms
-  uint64_t LastUpdateTime;  // Computer time at the last statistics update
-  float AcqRealTime;        // Acquisition time (from the start) in ms
-  float AcqStopTime;        // Acquisition Stop time (from the start) in ms
-  int RealTimeSource;  // 0: real time from the time stamps; 1: real time from the computer
-  char AcqStartTimeString[100];  // Start Time in the format %Y-%m-%d %H:%M:%S
-
-  uint64_t
-      LatestProcTstampAll;  // Latest event time stamp (= acquisition time taken from the boards) in ns
-  uint64_t
-      PrevProcTstampAll;  // Previous event time stamp (used to calculate the elapsed time from the last update) in ns
-  uint64_t LatestReadTstamp[MAX_NBRD]
-                           [MAX_NCH];  // Newest time stamp in ns at queue input
-  uint64_t PrevReadTstamp
-      [MAX_NBRD]
-      [MAX_NCH];  // Previous value of LatestReadTstamp (used to calculate elapsed time)
-  uint64_t
-      LatestProcTstamp[MAX_NBRD]
-                      [MAX_NCH];  // Newest time stamp in ns at queue output
-  uint64_t PrevProcTstamp
-      [MAX_NBRD]
-      [MAX_NCH];  // Previous value of LatestProcTstamp (used to calculate elapsed time)
-  uint64_t ICRUpdateTime
-      [MAX_NBRD]
-      [MAX_NCH];  // Time stamp of the event containg ICR information (1K flag)
-  uint64_t PrevICRUpdateTime
-      [MAX_NBRD]
-      [MAX_NCH];  // Previous value of ICRUpdateTime (used to calculate elapsed time for ICR)
-  uint64_t LostTrgUpdateTime
-      [MAX_NBRD]
-      [MAX_NCH];  // Time stamp of the event containg Lost Trigger information (1K flag)
-  uint64_t PrevLostTrgUpdateTime
-      [MAX_NBRD]
-      [MAX_NCH];  // Previous value of TrgLostUpdateTime (used to calculate elapsed time for LostTriggers)
-
-} Stats_t;
 
 //****************************************************************************
 // struct that contains the configuration parameters (HW and SW)
@@ -769,33 +644,7 @@ typedef struct Config_t {
 //****************************************************************************
 // Global Variables
 //****************************************************************************
-extern Config_t WDcfg;     // struct containing all acquisition parameters
-extern Stats_t Stats;      // struct containing variables for the statistics
-extern Histos_t Histos;    // struct containing the histograms
-extern SysVars_t SysVars;  // systema variables
-
-extern int handle[MAX_NBRD];       // board handles (for the CAEN_DGTZ library)
-extern int TraceSet[MAX_NTRACES];  // Probe Settings
-extern char TraceNames[MAX_NTRACES][MAX_NTRSETS][20];  // Trace Name
-extern int ChToPlot, BrdToPlot;  // Board and Channel active in the plot
-extern uint32_t OutFileSize;     // Output file size
-extern FILE *MsgLog;             // Message Log
-extern int AcqRun;               // Acquisition running
-extern int Failure;              // Severe error => stop the program
-extern int IntegratedRates;      // 0=istantaneous rates; 1=integrated rates
-extern int
-    StopCh[MAX_NBRD]
-          [MAX_NCH];  // Individual Stop Acquisition (based on time or counts)
-
-// Functions
-#define MAX_NUM_CFG_FILES 50
-int ImpExpCfgFile();
-int SavePlotSettings();
-int LoadPlotSettings();
-int LoadSysVars(SysVars_t &SysVars);
-void FreqUnits(float freq, char str[1000]);
-void BoardLogString(int b, int StatsMode, char *str);
-void ChannelLogString(int b, int ch, int StatsMode, char *str);
-void CheckKeyboardCommands();
+// extern int TraceSet[MAX_NTRACES];                      // Probe Settings
+// extern char TraceNames[MAX_NTRACES][MAX_NTRSETS][20];  // Trace Name
 
 #endif

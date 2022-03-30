@@ -13,13 +13,11 @@ TDigiTes::~TDigiTes(){};
 
 void TDigiTes::LoadParameters(std::string fileName)
 {
-  LoadSysVars(fSysVars);
-
   // auto configFileName = "digiTES_Config.txt";
   std::cout << "Open the input file " << fileName << std::endl;
   FILE *f_ini = fopen(fileName.c_str(), "r");
 
-  if (f_ini == NULL) {
+  if (f_ini == nullptr) {
     std::cerr << "ERROR: Can't open configuration file " << fileName
               << std::endl;
     exit(1);
@@ -40,11 +38,11 @@ void TDigiTes::OpenDigitizers()
                                   fWDcfg.BaseAddress[b], &fHandler[b]);
     CAEN_DGTZ_Reset(fHandler[b]);
 
-    std::cout << fHandler[b] << "\t" << handle[b] << std::endl;
-    handle[b] = fHandler[b];
+    // std::cout << fHandler[b] << "\t" << handle[b] << std::endl;
+    // handle[b] = fHandler[b];
 
     char cstr[500];
-    if (ReadBoardInfo(b, cstr, fWDcfg) < 0) {
+    if (ReadBoardInfo(b, cstr, fWDcfg, fHandler) < 0) {
       std::cout << "ReadBoardInfo failed" << std::endl;
     }
     // std::cout << "NumAcqCh\t" << fWDcfg.NumAcqCh << std::endl;
@@ -53,8 +51,6 @@ void TDigiTes::OpenDigitizers()
     // for (auto i = fWDcfg.NumAcqCh; i < MAX_NCH; i++)
     for (auto i = fWDcfg.NumPhyCh; i < MAX_NCH; i++)
       fWDcfg.EnableInput[b][i] = 0;
-
-    SetTraceNames(fWDcfg);
   }
 }
 
@@ -70,12 +66,12 @@ void TDigiTes::InitDigitizers()
 {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
-    ret = (CAEN_DGTZ_ErrorCode)ProgramDigitizer(b, false, fWDcfg, fSysVars);
+    ret = (CAEN_DGTZ_ErrorCode)ProgramDigitizer(b, fWDcfg, fHandler);
     if (ret != CAEN_DGTZ_Success) {
       std::cout << "ERROR: Failed to program the digitizer" << std::endl;
       exit(1);
     }
-    SetVirtualProbes(b, fWDcfg);
+    SetVirtualProbes(b, fWDcfg, fHandler);
   }
 
   GetBoardInfo();
@@ -86,7 +82,7 @@ void TDigiTes::GetBoardInfo()
   CAEN_DGTZ_BoardInfo_t info;
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     // Check ch mask
-    auto err = CAEN_DGTZ_GetChannelEnableMask(handle[iBrd], &fChMask[iBrd]);
+    auto err = CAEN_DGTZ_GetChannelEnableMask(fHandler[iBrd], &fChMask[iBrd]);
     PrintError(err, "GetChannelEnableMask");
 
     err = CAEN_DGTZ_GetInfo(fHandler[iBrd], &info);
@@ -185,10 +181,10 @@ void TDigiTes::Start()
 
   fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
 
-  StartAcquisition(fWDcfg);
+  StartAcquisition(fWDcfg, fHandler);
 }
 
-void TDigiTes::Stop() { StopAcquisition(fWDcfg); }
+void TDigiTes::Stop() { StopAcquisition(fWDcfg, fHandler); }
 
 void TDigiTes::SendSWTrigger()
 {

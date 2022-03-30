@@ -13,18 +13,18 @@
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. The user relies on the
 * software, documentation and results solely at his own risk.
 ******************************************************************************/
+#include "Configure.h"
+
 #include <iostream>
 
-#include "Configure.h"
-#include "Console.h"
+// #include "Console.h"
 #include "digiTES.h"
 // ---------------------------------------------------------------------------------------------------------
 // Description: Program the registers of the digitizer with the relevant
 // parameters Inputs:		brd = board number Outputs:		-
 // Return:		Error code (0=success)
 // ---------------------------------------------------------------------------------------------------------
-int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
-                     SysVars_t &SysVars)
+int ProgramDigitizer(int brd, Config_t &WDcfg, const int handle[])
 {
   int i, ret = 0, stu;
   char CfgStep[100];
@@ -33,11 +33,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
   // Reset the digitizer
   ret = CAEN_DGTZ_Reset(handle[brd]);
   if (ret != 0) {
-    msg_printf(MsgLog, "ERROR: can't reset the digitizer %d\n", brd);
+    printf("ERROR: can't reset the digitizer %d\n", brd);
     goto abortcfg;
   }
 
-  // fprintf(MsgLog, "INFO: Configuring Board %d\n", brd);
   printf("INFO: Configuring Board %d\n", brd);
 
   if ((WDcfg.DigitizerModel == 724) || (WDcfg.DigitizerModel == 780) ||
@@ -60,8 +59,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
   // ########################################################################################################
   // set the enable mask (16 bit)
   if (WDcfg.EnableMask[brd] == 0) {
-    msg_printf(MsgLog, "WARNING: all channels of board %d are disabled!\n",
-               brd);
+    printf("WARNING: all channels of board %d are disabled!\n", brd);
     if (WDcfg.NumBrd == 1)
       return -1;
     else
@@ -137,8 +135,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
 
   // Use external clock in the desktop version
   if (0) {
-    msg_printf(MsgLog,
-               "WARNING: using external clock in the desktop/NIM version\n");
+    printf("WARNING: using external clock in the desktop/NIM version\n");
     ret |= CAEN_DGTZ_ReadRegister(handle[brd], 0x8100, &d32);
     ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8100, d32 | (1 << 6));
     Sleep(500);
@@ -153,15 +150,11 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
     case START_MODE_SYNCIN_1ST_HW:
     case START_MODE_SLAVE:
       if (WDcfg.SyncinMode != SYNCIN_MODE_RUN_CTRL) {
-        msg_printf(
-            MsgLog,
-            "WARNING: SyncinMode must be set as RUN_CTRL; forced option\n");
+        printf("WARNING: SyncinMode must be set as RUN_CTRL; forced option\n");
         WDcfg.SyncinMode = SYNCIN_MODE_RUN_CTRL;
       }
       if (WDcfg.TrgoutMode != TRGOUT_MODE_SYNC_OUT) {
-        msg_printf(
-            MsgLog,
-            "WARNING: TrgoutMode must be set as SYNC_OUT; forced option\n");
+        printf("WARNING: TrgoutMode must be set as SYNC_OUT; forced option\n");
         WDcfg.TrgoutMode = TRGOUT_MODE_SYNC_OUT;
       }
       ret |=
@@ -173,13 +166,14 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
                                         // SIN goes high)
       // Run Delay to deskew the start of acquisition
       if (brd == 0 && WDcfg.StartMode != START_MODE_SLAVE)
-        ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170,
-                                       (WDcfg.NumBrd + WDcfg.Slave - 1) * 3 + 1);
-      else if(WDcfg.StartMode == START_MODE_SLAVE)
-	ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170, (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
+        ret |= CAEN_DGTZ_WriteRegister(
+            handle[brd], 0x8170, (WDcfg.NumBrd + WDcfg.Slave - 1) * 3 + 1);
+      else if (WDcfg.StartMode == START_MODE_SLAVE)
+        ret |= CAEN_DGTZ_WriteRegister(
+            handle[brd], 0x8170, (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
       else
-        ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x8170,
-                                       (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
+        ret |= CAEN_DGTZ_WriteRegister(
+            handle[brd], 0x8170, (WDcfg.NumBrd + WDcfg.Slave - brd - 1) * 3);
       break;
     case START_MODE_TRGIN_1ST_SW:
     case START_MODE_TRGIN_1ST_HW:
@@ -332,7 +326,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
   if (0) {  // manual settings (for debug)
     ret |= CAEN_DGTZ_SetMaxNumAggregatesBLT(handle[brd],
                                             1);  // Number of buffers per BLT
-    msg_printf(MsgLog, "WARNING: manual settings of memory segmentation\n");
+    printf("WARNING: manual settings of memory segmentation\n");
     if (WDcfg.AcquisitionMode == ACQ_MODE_MIXED) {
       CAEN_DGTZ_WriteRegister(handle[brd], 0x800C,
                               0x3);  // Buffer organization (8 buffers)
@@ -348,19 +342,14 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
 
   if (WDcfg.DigitizerModel != 5000) {
     CAEN_DGTZ_ReadRegister(handle[brd], 0x8000, &d32);
-    // fprintf(MsgLog, "INFO: 0x8000: Ctrl Reg = %08X\n", d32);
     printf("INFO: 0x8000: Ctrl Reg = %08X\n", d32);
     CAEN_DGTZ_ReadRegister(handle[brd], 0x1020, &d32);
-    // fprintf(MsgLog, "INFO: 0x1020: RecLength = %d\n", d32);
     printf("INFO: 0x1020: RecLength = %d\n", d32);
     CAEN_DGTZ_ReadRegister(handle[brd], 0x100C, &d32);
-    // fprintf(MsgLog, "INFO: 0x100C: Buffer Organization = %d\n", d32);
     printf("INFO: 0x100C: Buffer Organization = %d\n", d32);
     CAEN_DGTZ_ReadRegister(handle[brd], 0x1034, &d32);
-    // fprintf(MsgLog, "INFO: 0x1034: Num Events x Buff = %d\n", d32);
     printf("INFO: 0x1034: Num Events x Buff = %d\n", d32);
     CAEN_DGTZ_ReadRegister(handle[brd], 0xEF1C, &d32);
-    // fprintf(MsgLog, "INFO: 0xEF1C: Num Aggr x BLT = %d\n", d32);
     printf("INFO: 0xEF1C: Num Aggr x BLT = %d\n", d32);
   }
 
@@ -839,7 +828,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
         }
       }
     }
-    msg_printf(MsgLog, Msg);
+    printf(Msg);
   }
   if (ret) goto abortcfg;
 
@@ -880,10 +869,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
         m = (int)(WDcfg.TrapFlatTop[brd][i] / tu);
         ftd = (int)(WDcfg.PeakingTime[brd][i] / tu);
         if (ftd > m) {
-          msg_printf(MsgLog,
-                     "WARNING: PeakingTime > FlatTop; forced PeakingTime = "
-                     "FlatTop (%d ns)\n",
-                     WDcfg.TrapFlatTop);
+          printf(
+              "WARNING: PeakingTime > FlatTop; forced PeakingTime = "
+              "FlatTop (%d ns)\n",
+              WDcfg.TrapFlatTop);
           ftd = m;
         }
         b = (int)(WDcfg.TTFdelay[brd][i] /
@@ -908,9 +897,9 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
 
         if (WDcfg.EHnbin > 16384) {
           WDcfg.EHnbin = 16384;
-          msg_printf(MsgLog,
-                     "WARNING: Can't use 32K energy spectrum for x730/x725: "
-                     "set 16K\n");
+          printf(
+              "WARNING: Can't use 32K energy spectrum for x730/x725: "
+              "set 16K\n");
         }
         WDcfg.EnergyDiv[brd][i] =
             (1 << 14) /
@@ -947,10 +936,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
                                WDcfg);  // shf
         if (WDcfg.NSPeak[brd][i] > 3) {
           WDcfg.NSPeak[brd][i] = 3;
-          msg_printf(MsgLog,
-                     "WARNING: option %d for NSPeak is not allowed. Forced to "
-                     "3 (=64 samples)\n",
-                     WDcfg.NSPeak[brd][i]);
+          printf(
+              "WARNING: option %d for NSPeak is not allowed. Forced to "
+              "3 (=64 samples)\n",
+              WDcfg.NSPeak[brd][i]);
         }
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 12, 13,
                                WDcfg.NSPeak[brd][i], WDcfg);  // nspk
@@ -958,18 +947,15 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
                                WDcfg.PulsePolarity[brd][i], WDcfg);  // inv
         if (WDcfg.TrapNSBaseline[brd][i] > 6) {
           WDcfg.TrapNSBaseline[brd][i] = 6;
-          msg_printf(MsgLog,
-                     "WARNING: option %d for NsBaseline is not allowed. Forced "
-                     "to 6 (=16384 samples)\n",
-                     WDcfg.TrapNSBaseline);
+          printf(
+              "WARNING: option %d for NsBaseline is not allowed. Forced "
+              "to 6 (=16384 samples)\n",
+              WDcfg.TrapNSBaseline);
         }
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 20, 22,
                                WDcfg.TrapNSBaseline[brd][i], WDcfg);  // nsbl
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 8, 9,
                                WDcfg.Decimation[brd][i], WDcfg);  // decimation
-        ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 26, 26,
-                               SysVars.UseRollOverFakeEvents,
-                               WDcfg);  // enable rollover tracing
 
         // Discr Mode
         if (WDcfg.FWrev >= 4) {
@@ -1011,22 +997,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           ret |=
               RegisterSetBits(handle[brd], 0x10A0 + (i << 8), 19, 19, 1, WDcfg);
           if (i == 0)
-            msg_printf(MsgLog,
-                       "WARNING: uncorrelated events are saved with tag (not "
-                       "discarded)\n");
+            printf(
+                "WARNING: uncorrelated events are saved with tag (not "
+                "discarded)\n");
         }
-
-        // Set Extra Word = CFD zero crossing samples
-        if (SysVars.FineTstampMode == 2)
-          ret |= RegisterSetBits(
-              handle[brd], 0x10A0 + (i << 8), 8, 10, 5,
-              WDcfg);  // Extra Word = samples before and after ZC
-        else
-          ret |= RegisterSetBits(
-              handle[brd], 0x10A0 + (i << 8), 8, 10, 2,
-              WDcfg);  // Extra Word = extended Tstamp + fine Tstamp
-        // ret |= RegisterSetBits(handle[brd], 0x10A0 + (i<<8), 8, 10, 7);   //
-        // Extra Word = 0x12345678  (debug)
 
         // Internal Pulse Emulator
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 14, 14,
@@ -1174,9 +1148,8 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           // Veto Settings
           ret |= CAEN_DGTZ_WriteRegister(
               handle[brd], 0x10A8 + (i << 8),
-              (uint32_t)(
-                  WDcfg.VetoWindow[brd][i] /
-                  10));  // veto window width (0 = as long as input signal)
+              (uint32_t)(WDcfg.VetoWindow[brd][i] /
+                         10));  // veto window width (0 = as long as input signal)
           ret |= RegisterSetBits(handle[brd], 0x10A4 + (i << 8), 2, 2, 1,
                                  WDcfg);  // enable veto from GPIO
           // AC coupling and PZ comp
@@ -1216,10 +1189,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
                                WDcfg);  // shf
         if (WDcfg.NSPeak[brd][i] > 3) {
           WDcfg.NSPeak[brd][i] = 3;
-          msg_printf(MsgLog,
-                     "WARNING: option %d for NSPeak is not allowed. Forced to "
-                     "3 (=64 samples)\n",
-                     WDcfg.NSPeak[brd][i]);
+          printf(
+              "WARNING: option %d for NSPeak is not allowed. Forced to "
+              "3 (=64 samples)\n",
+              WDcfg.NSPeak[brd][i]);
         }
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 12, 13,
                                WDcfg.NSPeak[brd][i], WDcfg);  // nspk
@@ -1229,21 +1202,15 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
         // // trgmode
         if (WDcfg.TrapNSBaseline[brd][i] > 6) {
           WDcfg.TrapNSBaseline[brd][i] = 6;
-          msg_printf(MsgLog,
-                     "WARNING: option %d for NsBaseline is not allowed. Forced "
-                     "to 6 (=16384 samples)\n",
-                     WDcfg.TrapNSBaseline[brd][i]);
+          printf(
+              "WARNING: option %d for NsBaseline is not allowed. Forced "
+              "to 6 (=16384 samples)\n",
+              WDcfg.TrapNSBaseline[brd][i]);
         }
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 20, 22,
                                WDcfg.TrapNSBaseline[brd][i], WDcfg);  // nsbl
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 8, 9,
                                WDcfg.Decimation[brd][i], WDcfg);  // decimation
-        ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 26, 26,
-                               SysVars.UseRollOverFakeEvents,
-                               WDcfg);  // enable rollover tracing
-        // ret |= RegisterSetBits(handle[brd], 0x1080 + (i<<8), 25, 25, 1);
-        // // enable tstamp_reset tracing ret |= RegisterSetBits(handle[brd],
-        // 0x1080 + (i<<8), 15, 15, 1);	// Enable Spike Reject
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 29, 29, 1,
                                WDcfg);  // Enable Baseline clipping
         if (WDcfg.DiscrMode[brd][i] == DISCR_MODE_DISABLED) {
@@ -1267,9 +1234,9 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           // Enable TAC mode
           if (0) {
             if (i == 0)
-              msg_printf(MsgLog,
-                         "[WARNING]: TAC mode enabled (trapezoid replaced by "
-                         "input signal)\n");
+              printf(
+                  "[WARNING]: TAC mode enabled (trapezoid replaced by "
+                  "input signal)\n");
             ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 30, 30, 1,
                                    WDcfg);
           }
@@ -1600,10 +1567,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           if (NotAllowed) {
             WDcfg.ChargeSensitivity[brd][i] = 0;
             WDcfg.EnergyDiv[brd][i] = 1;
-            msg_printf(MsgLog,
-                       "WARNING: Value %f for the CoarseGain is not allowed "
-                       "for this board and binning\n",
-                       WDcfg.EnergyCoarseGain[brd][i]);
+            printf(
+                "WARNING: Value %f for the CoarseGain is not allowed "
+                "for this board and binning\n",
+                WDcfg.EnergyCoarseGain[brd][i]);
           } else {
             WDcfg.ChargeSensitivity[brd][i] = sens;
             WDcfg.EnergyDiv[brd][i] = ediv;
@@ -1630,23 +1597,23 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
         // Baseline
         if ((WDcfg.DppType == DPP_PSD_751) && (WDcfg.NsBaseline[brd][i] > 7)) {
           WDcfg.NsBaseline[brd][i] = 7;
-          msg_printf(MsgLog,
-                     "WARNING: option %d for NsBaseline is not allowed. Forced "
-                     "to 7 (=512 samples)\n",
-                     WDcfg.NsBaseline[brd][i]);
+          printf(
+              "WARNING: option %d for NsBaseline is not allowed. Forced "
+              "to 7 (=512 samples)\n",
+              WDcfg.NsBaseline[brd][i]);
         }
         if ((WDcfg.DppType != DPP_PSD_751) && (WDcfg.NsBaseline[brd][i] > 4)) {
           WDcfg.NsBaseline[brd][i] = 4;
           if (WDcfg.DppType == DPP_PSD_720)
-            msg_printf(MsgLog,
-                       "WARNING: option %d for NsBaseline is not allowed. "
-                       "Forced to 4 (=512 samples)\n",
-                       WDcfg.NsBaseline[brd][i]);
+            printf(
+                "WARNING: option %d for NsBaseline is not allowed. "
+                "Forced to 4 (=512 samples)\n",
+                WDcfg.NsBaseline[brd][i]);
           else
-            msg_printf(MsgLog,
-                       "WARNING: option %d for NsBaseline is not allowed. "
-                       "Forced to 4 (=1024 samples)\n",
-                       WDcfg.NsBaseline[brd][i]);
+            printf(
+                "WARNING: option %d for NsBaseline is not allowed. "
+                "Forced to 4 (=1024 samples)\n",
+                WDcfg.NsBaseline[brd][i]);
         }
         ret |= RegisterSetBits(handle[brd], 0x1080 + (i << 8), 20, 22,
                                WDcfg.NsBaseline[brd][i], WDcfg);
@@ -1676,26 +1643,6 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           else
             ret |=
                 RegisterSetBits(handle[brd], 0x1080 + (i << 8), 6, 6, 0, WDcfg);
-          // Set Extra Word = CFD zero crossing samples
-          if (WDcfg.DppType == DPP_PSD_751) {
-            if (SysVars.FineTstampMode == 2)
-              ret |= RegisterSetBits(
-                  handle[brd], 0x1080 + (i << 8), 11, 13, 5,
-                  WDcfg);  // Extra Word = samples before and after ZC
-            else
-              ret |= RegisterSetBits(
-                  handle[brd], 0x1080 + (i << 8), 11, 13, 2,
-                  WDcfg);  // Extra Word = extended Tstamp + fine Tstamp
-          } else {
-            if (SysVars.FineTstampMode == 2)
-              ret |= RegisterSetBits(
-                  handle[brd], 0x1084 + (i << 8), 8, 10, 5,
-                  WDcfg);  // Extra Word = samples before and after ZC
-            else
-              ret |= RegisterSetBits(
-                  handle[brd], 0x1084 + (i << 8), 8, 10, 2,
-                  WDcfg);  // Extra Word = extended Tstamp + fine Tstamp
-          }
 
           ret |= RegisterSetBits(handle[brd], 0x1084 + (i << 8), 12, 15,
                                  WDcfg.TTFsmoothing[brd][i], WDcfg);
@@ -1744,7 +1691,7 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
         if (0) {
           ret |=
               RegisterSetBits(handle[brd], 0x1084 + (i << 8), 25, 26, 1, WDcfg);
-          if (i == 0) msg_printf(MsgLog, "WARNING: enabled trigger sum\n");
+          if (i == 0) printf("WARNING: enabled trigger sum\n");
         }
 
         // Set fixed charge and extras (for debug)
@@ -1754,9 +1701,9 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
           ret |= RegisterSetBits(handle[brd], 0x1084 + (i << 8), 8, 10, 7,
                                  WDcfg);  // Extra Word = 0x12345678
           if (i == 0)
-            msg_printf(MsgLog,
-                       "WARNING: enabled fixed patterns on charge and extras "
-                       "for debug\n");
+            printf(
+                "WARNING: enabled fixed patterns on charge and extras "
+                "for debug\n");
         }
 
         // Set zero suppression based on Charge (discard events with Qlong <
@@ -1769,10 +1716,10 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
               RegisterSetBits(handle[brd], 0x1080 + (i << 8), 25, 25, 1, WDcfg);
           ret |= CAEN_DGTZ_WriteRegister(handle[brd], 0x1044 + (i << 8), Qthr);
           if (WDcfg.EnableInput[brd][i])
-            msg_printf(MsgLog,
-                       "WARNING: Brd %d, Ch %d: enabled zero suppression based "
-                       "on Charge\n",
-                       brd, i);
+            printf(
+                "WARNING: Brd %d, Ch %d: enabled zero suppression based "
+                "on Charge\n",
+                brd, i);
         }
 
         // use smoothed input for the charge integration
@@ -1905,9 +1852,8 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
   sprintf(CfgStep, "Calibration");
   // ########################################################################################################
   if (((WDcfg.DigitizerModel == 730) || (WDcfg.DigitizerModel == 725) ||
-       (WDcfg.DigitizerModel == 751)) &&
-      !SkipCalibration) {
-    msg_printf(MsgLog, "INFO: Calibrating ADCs... ");
+       (WDcfg.DigitizerModel == 751))) {
+    printf("INFO: Calibrating ADCs... ");
     ret |= CAEN_DGTZ_Calibrate(handle[brd]);
     if ((WDcfg.DigitizerModel == 730) || (WDcfg.DigitizerModel == 725)) {
       if (1) {
@@ -1917,22 +1863,20 @@ int ProgramDigitizer(int brd, int SkipCalibration, Config_t &WDcfg,
       for (i = 0; i < WDcfg.NumPhyCh; i++) {
         CAEN_DGTZ_ReadRegister(handle[brd], 0x1088 + (i << 8), &d32);
         if (!(d32 & 0x8))
-          msg_printf(MsgLog, "\nWARNING: calibration not done on ch. %d\n", i);
+          printf("\nWARNING: calibration not done on ch. %d\n", i);
       }
     }
     Sleep(10);
-    msg_printf(MsgLog, "Done\n");
+    printf("Done\n");
   }
 
-  // fprintf(MsgLog, "INFO: Configuration OK\n");
   printf("INFO: Configuration OK\n");
   // SaveRegImage(brd);
   return 0;
 
 abortcfg:
-  msg_printf(MsgLog, "WARNING: Digitizer configuration failed on board %d:\n",
-             brd);
-  msg_printf(MsgLog, "WARNING: Error at: %s. Exit Code = %d\n", CfgStep, ret);
+  printf("WARNING: Digitizer configuration failed on board %d:\n", brd);
+  printf("WARNING: Error at: %s. Exit Code = %d\n", CfgStep, ret);
   return ret;
 }
 
@@ -1942,8 +1886,12 @@ abortcfg:
 // Outputs:		-
 // Return:		Error code (0=success)
 // ---------------------------------------------------------------------------------------------------------
-int SetVirtualProbes(int brd, Config_t WDcfg)
+int SetVirtualProbes(int brd, Config_t WDcfg, const int handle[])
 {
+  int TraceSet[MAX_NTRACES];
+  char TraceNames[MAX_NTRACES][MAX_NTRSETS][20];
+  SetTraceNames(WDcfg, TraceSet, TraceNames);
+
   int ret = 0;
 
   if (IS_STD_FW(WDcfg.DppType))  // no trace settings with STD FW
@@ -2069,7 +2017,8 @@ int SetVirtualProbes(int brd, Config_t WDcfg)
 // Description: Set trace options and names for each type of digitizer and DPP
 // Return:		Error code (0=success)
 // ---------------------------------------------------------------------------------------------------------
-int SetTraceNames(Config_t WDcfg)
+int SetTraceNames(Config_t WDcfg, int TraceSet[],
+                  char TraceNames[][MAX_NTRSETS][20])
 {
   int i, j;
   for (i = 0; i < MAX_NTRACES; i++) {
