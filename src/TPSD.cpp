@@ -172,39 +172,30 @@ void TPSD::DecodeRawData()
                                                fpPSDWaveform[iBrd]);
             PrintError(err, "DecodeDPPWaveforms");
 
-            // For Extended time stamp
-            // auto tdc =
-            //     (fppPSDEvents[iBrd][iCh][iEve].TimeTag +
-            //      ((uint64_t)((fppPSDEvents[iBrd][iCh][iEve].Extras >> 16) & 0xFFFF)
-            //       << 31)) *
-            //     fWDcfg.Tsampl;
-
-            // Not use the Extended time stamp.
-            // We want to use extra as zero crossing
-            const auto TSMask =
-                (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
-            uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
-            if (timeTag < fPreviousTime[iBrd][iCh]) {
-              fTimeOffset[iBrd][iCh] += (TSMask + 1);
-            }
-            fPreviousTime[iBrd][iCh] = timeTag;
-            auto tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-
-            // auto test = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-            // std::cout << fppPSDEvents[iBrd][iCh][iEve].TimeTag << "\t" << tdc
-            //           << "\t" << test << std::endl;
-            // if (tdc != test) {
-            //   exit(0);
-            // }
-
             auto data = std::make_shared<TreeData_t>(fpPSDWaveform[iBrd]->Ns);
             data->Mod = iBrd;
             data->Ch = iCh;
-            data->TimeStamp = tdc;
             data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
             data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;
             data->RecordLength = fpPSDWaveform[iBrd]->Ns;
             data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
+
+            uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
+            if (fFlagHWFineTS) {
+              uint64_t extTS =
+                  ((uint64_t)((data->Extras >> 16) & 0xFFFF) << 31);
+              uint64_t tdc = (timeTag + extTS) * fWDcfg.Tsampl;
+              data->TimeStamp = tdc;
+            } else {
+              const uint64_t TSMask =
+                  (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
+              if (timeTag < fPreviousTime[iBrd][iCh]) {
+                fTimeOffset[iBrd][iCh] += (TSMask + 1);
+              }
+              fPreviousTime[iBrd][iCh] = timeTag;
+              uint64_t tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+              data->TimeStamp = tdc;
+            }
 
             data->FineTS = 0.;
             if (fFlagFineTS) {

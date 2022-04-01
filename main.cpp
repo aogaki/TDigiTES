@@ -81,9 +81,9 @@ int main(int argc, char *argv[])
   // digitizer->LoadParameters("./Waveform.conf");
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
-  digitizer->UseFineTS();
-  // digitizer->UseHWFineTS();
-  digitizer->UseTrgCounter(0, 3);  // Change FineTS -> Lost trg counter
+  // digitizer->UseFineTS();
+  digitizer->UseHWFineTS();
+  // digitizer->UseTrgCounter(0, 3);  // Change FineTS -> Lost trg counter
   digitizer->AllocateMemory();
 
   digitizer->Start();
@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
       //           << "\t" << fineTS << "\t" << totalTrg << "\t" << counter
       //           << std::endl;
       if (data->at(iHit)->Ch == 3) {
+        // std::cout << data->at(iHit)->TimeStamp << std::endl;
         counter++;
         if (ts - lastTS > updateTime) {
           auto eveRate = (counter / (ts - lastTS)) * 1.e9;

@@ -158,38 +158,28 @@ void TPHA::DecodeRawData()
                                                fpPHAWaveform[iBrd]);
             PrintError(err, "DecodeDPPWaveforms");
 
-            // For Extended time stamp
-            // For NOT x724
-            // unsigned long test =
-            //     ((fppPHAEvents[iBrd][iCh][iEve].TimeTag & 0x7FFFFFFF) +
-            //      ((uint64_t)((fppPHAEvents[iBrd][iCh][iEve].Extras2 >> 16) & 0xFFFF)
-            //       << 31)) *
-            //     fWDcfg.Tsampl;
-
-            // Extended timestamp without Extras2
-            constexpr unsigned long TSMask = 0x7FFFFFFF;
-            uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
-            if (timeTag < fPreviousTime[iBrd][iCh]) {
-              fTimeOffset[iBrd][iCh] += (TSMask + 1);
-            }
-            fPreviousTime[iBrd][iCh] = timeTag;
-            unsigned long tdc =
-                (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
-            /*
-            if(timeTag == 0){
-              std::cout << fppPHAEvents[iBrd][iCh][iEve].TimeTag <<"\t"<< timeTag <<"\t"
-                        <<  fTimeOffset[iBrd][iCh] <<"\t"<< fWDcfg.Tsampl
-                        <<"\t"<< iBrd <<"\t"<< iCh <<"\t"
-                        << fppPHAEvents[iBrd][iCh][iEve].Energy <<"\t"
-                        << fWDcfg.EnableMask[iBrd] << std::endl;
-            }
-            */
-
             auto data = std::make_shared<TreeData_t>(fpPHAWaveform[iBrd]->Ns);
             data->Mod = iBrd;
             data->Ch = iCh;
-            data->TimeStamp = tdc;
-            data->Extras = fppPHAEvents[iBrd][iCh][iEve].Extras2;
+            data->Extras = fppPHAEvents[iBrd][iCh][iEve]
+                               .Extras2;  // For Extended time stamp
+
+            uint64_t timeTag = fppPHAEvents[iBrd][iCh][iEve].TimeTag;
+            if (fFlagHWFineTS) {
+              uint64_t extTS =
+                  ((uint64_t)((data->Extras >> 16) & 0xFFFF) << 31);
+              uint64_t tdc = (timeTag + extTS) * fWDcfg.Tsampl;
+              data->TimeStamp = tdc;
+            } else {
+              constexpr uint64_t TSMask = 0x7FFFFFFF;
+              if (timeTag < fPreviousTime[iBrd][iCh]) {
+                fTimeOffset[iBrd][iCh] += (TSMask + 1);
+              }
+              fPreviousTime[iBrd][iCh] = timeTag;
+              uint64_t tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+              data->TimeStamp = tdc;
+            }
+
             data->FineTS = 0;
             if (fFlagFineTS) {
               double posZC = int16_t((data->Extras >> 16) & 0xFFFF);
