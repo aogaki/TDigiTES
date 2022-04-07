@@ -34,6 +34,9 @@ class TPHA : public TDigiTes
   void UseHWFineTS() override;
   void UseTrgCounter(const int mod, const int ch) override;
 
+  void SetTrginVETO(uint32_t gateWidth = 0);
+  void SetTrginGate(uint32_t gateWidth = 0);
+
   void SetThreshold() override;
   void SetTrapezoidPar();
   void SetPHAPar();  // Both threshold and trapezoid, and more

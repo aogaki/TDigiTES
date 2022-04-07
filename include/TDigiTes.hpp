@@ -47,6 +47,8 @@ class TDigiTes
 
   void SendSWTrigger();
 
+  void DumpRegisters();
+
   virtual void SetThreshold() = 0;
 
   // Memory
