@@ -186,6 +186,54 @@ void TDigiTes::Start()
 
 void TDigiTes::Stop() { StopAcquisition(fWDcfg, fHandler); }
 
+void TDigiTes::ReadEvents()
+{
+  ReadRawData();
+  DecodeRawData();
+}
+
+void TDigiTes::ReadRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    ReadRawData();
+    usleep(fReadInterval);
+  }
+
+  std::cout << "ReadRawData done" << std::endl;
+}
+
+void TDigiTes::DecodeRawDataWrapper()
+{
+  while (fReadoutFlag) {
+    DecodeRawData();
+    usleep(fDecodeInterval);
+  }
+
+  std::cout << "DecodeRawData done" << std::endl;
+}
+
+void TDigiTes::StartReadoutMT()
+{
+  SetIntervals();
+
+  fReadoutFlag = true;
+  fReadThread = std::thread(&TDigiTes::ReadRawDataWrapper, this);
+  fDecodeThread = std::thread(&TDigiTes::DecodeRawDataWrapper, this);
+}
+
+void TDigiTes::StopReadoutMT()
+{
+  fReadoutFlag = false;
+  fReadThread.join();
+  fDecodeThread.join();
+}
+
+void TDigiTes::SetIntervals()
+{
+  fReadInterval = 1000;
+  fDecodeInterval = 1000;
+}
+
 void TDigiTes::SendSWTrigger()
 {
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {

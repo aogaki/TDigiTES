@@ -67,46 +67,6 @@ void TPHA::FreeMemory()
   }
 }
 
-void TPHA::ReadEvents()
-{
-  ReadRawData();
-  DecodeRawData();
-}
-
-void TPHA::ReadRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    ReadRawData();
-    usleep(fReadInterval);
-  }
-
-  std::cout << "ReadRawData done" << std::endl;
-}
-
-void TPHA::DecodeRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    DecodeRawData();
-    usleep(fDecodeInterval);
-  }
-
-  std::cout << "DecodeRawData done" << std::endl;
-}
-
-void TPHA::StartReadoutMT()
-{
-  fReadoutFlag = true;
-  fReadThread = std::thread(&TPHA::ReadRawDataWrapper, this);
-  fDecodeThread = std::thread(&TPHA::DecodeRawDataWrapper, this);
-}
-
-void TPHA::StopReadoutMT()
-{
-  fReadoutFlag = false;
-  fReadThread.join();
-  fDecodeThread.join();
-}
-
 void TPHA::ReadRawData()
 {
   RawData_t rawData(new std::vector<std::vector<char>>);

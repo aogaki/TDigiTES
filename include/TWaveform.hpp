@@ -22,10 +22,6 @@ class TWaveform : public TDigiTes
   void AllocateMemory() override;
   void FreeMemory() override;
 
-  void ReadEvents() override;
-  void StartReadoutMT() override;
-  void StopReadoutMT() override;
-
   void DisableSelfTrigger();
 
   void UseFineTS(){};
@@ -44,9 +40,7 @@ class TWaveform : public TDigiTes
   uint64_t fPreviousTime;
 
   void ReadRawData() override;
-  void ReadRawDataWrapper() override;
   void DecodeRawData() override;
-  void DecodeRawDataWrapper() override;
 };
 
 #endif

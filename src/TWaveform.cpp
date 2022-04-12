@@ -54,46 +54,6 @@ void TWaveform::FreeMemory()
   }
 };
 
-void TWaveform::ReadEvents()
-{
-  ReadRawData();
-  DecodeRawData();
-}
-
-void TWaveform::ReadRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    ReadRawData();
-    usleep(fReadInterval);
-  }
-
-  std::cout << "ReadRawData done" << std::endl;
-}
-
-void TWaveform::DecodeRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    DecodeRawData();
-    usleep(fDecodeInterval);
-  }
-
-  std::cout << "DecodeRawData done" << std::endl;
-}
-
-void TWaveform::StartReadoutMT()
-{
-  fReadoutFlag = true;
-  fReadThread = std::thread(&TWaveform::ReadRawDataWrapper, this);
-  fDecodeThread = std::thread(&TWaveform::DecodeRawDataWrapper, this);
-}
-
-void TWaveform::StopReadoutMT()
-{
-  fReadoutFlag = false;
-  fReadThread.join();
-  fDecodeThread.join();
-}
-
 void TWaveform::ReadRawData()
 {
   RawData_t rawData(new std::vector<std::vector<char>>);

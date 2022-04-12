@@ -26,16 +26,12 @@ class TPHA : public TDigiTes
   void AllocateMemory() override;
   void FreeMemory() override;
 
-  void ReadEvents() override;
-  void StartReadoutMT() override;
-  void StopReadoutMT() override;
-
   void UseFineTS() override;
   void UseHWFineTS() override;
   void UseTrgCounter(const int mod, const int ch) override;
 
-  void SetTrginVETO(uint32_t gateWidth = 0);
-  void SetTrginGate(uint32_t gateWidth = 0);
+  void SetTrginVETO(uint32_t gateWidth = 0);  // Test
+  void SetTrginGate(uint32_t gateWidth = 0);  // Test
 
   void SetThreshold() override;
   void SetTrapezoidPar();
@@ -48,9 +44,7 @@ class TPHA : public TDigiTes
   CAEN_DGTZ_DPP_PHA_Waveforms_t *fpPHAWaveform[MAX_NBRD];  // waveforms buffer
 
   void ReadRawData() override;
-  void ReadRawDataWrapper() override;
   void DecodeRawData() override;
-  void DecodeRawDataWrapper() override;
 };
 
 #endif

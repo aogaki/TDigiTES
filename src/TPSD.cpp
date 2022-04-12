@@ -80,46 +80,6 @@ void TPSD::FreeMemory()
   }
 }
 
-void TPSD::ReadEvents()
-{
-  ReadRawData();
-  DecodeRawData();
-}
-
-void TPSD::ReadRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    ReadRawData();
-    usleep(fReadInterval);
-  }
-
-  std::cout << "ReadRawData done" << std::endl;
-}
-
-void TPSD::DecodeRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    DecodeRawData();
-    usleep(fDecodeInterval);
-  }
-
-  std::cout << "DecodeRawData done" << std::endl;
-}
-
-void TPSD::StartReadoutMT()
-{
-  fReadoutFlag = true;
-  fReadThread = std::thread(&TPSD::ReadRawDataWrapper, this);
-  fDecodeThread = std::thread(&TPSD::DecodeRawDataWrapper, this);
-}
-
-void TPSD::StopReadoutMT()
-{
-  fReadoutFlag = false;
-  fReadThread.join();
-  fDecodeThread.join();
-}
-
 void TPSD::ReadRawData()
 {
   RawData_t rawData(new std::vector<std::vector<char>>);

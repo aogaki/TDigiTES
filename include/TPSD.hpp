@@ -26,10 +26,6 @@ class TPSD : public TDigiTes
   void AllocateMemory() override;
   void FreeMemory() override;
 
-  void ReadEvents() override;
-  void StartReadoutMT() override;
-  void StopReadoutMT() override;
-
   void UseFineTS() override;  // For fine TS
   void UseHWFineTS() override;
   void UseTrgCounter(const int mod, const int ch) override;
@@ -43,9 +39,7 @@ class TPSD : public TDigiTes
   CAEN_DGTZ_DPP_PSD_Waveforms_t *fpPSDWaveform[MAX_NBRD];  // waveforms buffer
 
   void ReadRawData() override;
-  void ReadRawDataWrapper() override;
   void DecodeRawData() override;
-  void DecodeRawDataWrapper() override;
 };
 
 #endif

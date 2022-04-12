@@ -57,9 +57,9 @@ class TDigiTes
 
   // Event readout
   std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> GetData();
-  virtual void ReadEvents() = 0;
-  virtual void StartReadoutMT() = 0;
-  virtual void StopReadoutMT() = 0;
+  void ReadEvents();
+  void StartReadoutMT();
+  void StopReadoutMT();
 
   virtual void UseFineTS() = 0;
   virtual void UseHWFineTS() = 0;
@@ -94,15 +94,16 @@ class TDigiTes
   typedef std::shared_ptr<std::vector<std::vector<char>>> RawData_t;
   std::deque<RawData_t> fRawDataQue;
   virtual void ReadRawData() = 0;
-  virtual void ReadRawDataWrapper() = 0;
+  void ReadRawDataWrapper();
   std::thread fReadThread;
   virtual void DecodeRawData() = 0;
-  virtual void DecodeRawDataWrapper() = 0;
+  void DecodeRawDataWrapper();
   std::thread fDecodeThread;
   bool fReadoutFlag;
   std::mutex fMutex;
-  const unsigned int fReadInterval = 100;
-  const unsigned int fDecodeInterval = 10;
+  void SetIntervals();
+  unsigned int fReadInterval = 10000;
+  unsigned int fDecodeInterval = 1000;
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;
