@@ -250,9 +250,10 @@ void TPHA::UseHWFineTS()
 
     // Trace settings
     RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b00, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b01, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);
   }
 
   fFlagFineTS = false;

@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
   digitizer->InitDigitizers();
   // digitizer->UseFineTS();
   digitizer->UseHWFineTS();
+  // digitizer->Test();
   // digitizer->UseTrgCounter(0, 3);  // Change FineTS -> Lost trg counter
   digitizer->AllocateMemory();
 

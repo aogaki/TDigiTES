@@ -65,6 +65,8 @@ class TDigiTes
   virtual void UseHWFineTS() = 0;
   virtual void UseTrgCounter(const int mod, const int ch) = 0;
 
+  void Test();
+
  protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
   SysVars_t fSysVars;  // system variables

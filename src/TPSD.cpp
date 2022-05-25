@@ -91,6 +91,7 @@ void TPSD::ReadRawData()
                                   fpReadoutBuffer[iBrd], &bufferSize);
     PrintError(err, "ReadData");
 
+    // 0 event also used to check the board has event or not
     std::vector<char> v(bufferSize);
     if (bufferSize > 0) memcpy(&v[0], fpReadoutBuffer[iBrd], bufferSize);
     rawData->push_back(v);

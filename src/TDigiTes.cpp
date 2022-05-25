@@ -230,8 +230,9 @@ void TDigiTes::StopReadoutMT()
 
 void TDigiTes::SetIntervals()
 {
-  fReadInterval = 1000;
-  fDecodeInterval = 1000;
+  // For usleep
+  fReadInterval = 500;
+  fDecodeInterval = 500;
 }
 
 void TDigiTes::SendSWTrigger()
@@ -248,6 +249,13 @@ std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> TDigiTes::GetData()
   auto retVal = fDataVec;
   fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
   return retVal;
+}
+
+void TDigiTes::Test()
+{
+  for (auto b = 0; b < fWDcfg.NumBrd; b++) {
+    CAEN_DGTZ_DisableEventAlignedReadout(fHandler[b]);
+  }
 }
 
 void TDigiTes::DumpRegisters()
