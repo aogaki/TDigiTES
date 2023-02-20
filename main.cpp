@@ -25,6 +25,7 @@
 #include "TDigiTes.hpp"
 #include "TPHA.hpp"
 #include "TPSD.hpp"
+#include "TQDC.hpp"
 #include "TWaveform.hpp"
 #include "TreeData.h"
 #include "digiTES.h"
@@ -57,96 +58,35 @@ int InputCHeck(void)
 
 int main(int argc, char *argv[])
 {
-  TApplication app("test", &argc, argv);
-  auto hist = new TH1D("hist", "Charge long", 1024, 0.5, 1024.5);
-  hist->SetXTitle("[ch]");
-  auto waveform = new TGraph();
-  waveform->SetMinimum(0);
-  waveform->SetMaximum(18000);
-  waveform->SetPoint(0, 0, 0);  // dummy
-  auto canv = new TCanvas("canv", "test", 1200, 400);
-  canv->Divide(2, 1);
-  canv->cd(1);
-  hist->Draw();
-  canv->cd(2);
-  waveform->Draw("AL");
-
-  // std::unique_ptr<TWaveform> digitizer(new TWaveform);
-  std::unique_ptr<TPSD> digitizer(new TPSD);
-  // std::unique_ptr<TPHA> digitizer(new TPHA);
-
-  // digitizer->LoadParameters();
-  // digitizer->LoadParameters("./PHA.conf");
-  digitizer->LoadParameters("./PSD.conf");
-  // digitizer->LoadParameters("./Waveform.conf");
+  std::unique_ptr<TQDC> digitizer(new TQDC);
+  digitizer->LoadParameters("./QDC.conf");
   digitizer->OpenDigitizers();
   digitizer->InitDigitizers();
-  // digitizer->UseFineTS();
-  digitizer->UseHWFineTS();
   // digitizer->Test();
-  // digitizer->UseTrgCounter(0, 3);  // Change FineTS -> Lost trg counter
   digitizer->AllocateMemory();
-
   digitizer->Start();
-  digitizer->StartReadoutMT();
+
+  // for (auto i = 0; i < 100; i++) {
+  //   digitizer->SendSWTrigger();
+  //   sleep(4);
+  //   digitizer->ReadEvents();
+  //   auto data = digitizer->GetData();
+  //   std::cout << "Size" << data->size() << std::endl;
+  // }
 
   while (true) {
-    // for (auto i = 0; i < 1000; i++) digitizer->SendSWTrigger();
-    // usleep(1);
-
-    // digitizer->ReadEvents();
+    sleep(1);
+    digitizer->ReadEvents();
     auto data = digitizer->GetData();
-    auto nHits = data->size();
-
-    constexpr auto updateTime = 1.e9;  // 1 sec in ns
-    static double lastTS = 0.;
-    static int counter = 0;
-    static double lastLostCounter = 0.;
-    for (auto iHit = 0; iHit < nHits; iHit++) {
-      double ts = data->at(iHit)->TimeStamp;
-      double lostCounter = data->at(iHit)->FineTS;
-      auto adc = data->at(iHit)->ChargeLong;
-      if (data->at(iHit)->Ch == 3) {
-        hist->Fill(adc);
-        for (auto iPoint = 0; iPoint < data->at(iHit)->RecordLength; iPoint++)
-          waveform->SetPoint(iPoint, iPoint, data->at(iHit)->Trace1[iPoint]);
-      }
-      // auto lostTrg = uint16_t((data->at(iHit)->Extras >> 16) & 0xFFFF);
-      // auto totalTrg = uint16_t(data->at(iHit)->Extras & 0xFFFF);
-      //
-      // std::cout << int(data->at(iHit)->Ch) << "\t" << lostTrg << "\t"
-      //           << "\t" << fineTS << "\t" << totalTrg << "\t" << counter
-      //           << std::endl;
-      if (data->at(iHit)->Ch == 3) {
-        // std::cout << data->at(iHit)->TimeStamp << std::endl;
-        counter++;
-        if (ts - lastTS > updateTime) {
-          auto eveRate = (counter / (ts - lastTS)) * 1.e9;
-          auto lostRate =
-              ((lostCounter - lastLostCounter) / (ts - lastTS)) * 1.e9;
-          std::cout << eveRate << " Hz\t" << lostRate << " Hz\t"
-                    << eveRate + lostRate << " Hz" << std::endl;
-          lastTS = ts;
-          lastLostCounter = lostCounter;
-          counter = 0;
-        }
-      }
-    }
-
-    canv->Update();
-
-    if (InputCHeck()) {
-      break;
-    }
+    if (data->size() > 0) std::cout << "Size" << data->size() << std::endl;
+    if (InputCHeck()) break;
   }
 
-  digitizer->StopReadoutMT();
   digitizer->Stop();
 
   digitizer->FreeMemory();
   digitizer->CloseDigitizers();
 
   std::cout << "Finished" << std::endl;
-  app.Run();
   return 0;
 }

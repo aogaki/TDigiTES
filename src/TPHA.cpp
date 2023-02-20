@@ -8,7 +8,6 @@
 TPHA::TPHA()
 {
   for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
-    std::cout << iBrd << std::endl;
     fpReadoutBuffer[iBrd] = nullptr;
     fpPHAWaveform[iBrd] = nullptr;
     fppPHAEvents[iBrd] = nullptr;
@@ -149,7 +148,8 @@ void TPHA::DecodeRawData()
                 double dt =
                     (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
                 // Which is better?  Using pos or neg
-                // data->FineTS = ((dt * 1000. * posZC / (posZC - negZC)) + 0.5);
+                // data->FineTS = ((dt * 1000. * posZC / (posZC - negZC)) +
+                // 0.5);
                 data->FineTS =
                     ((dt * 1000. * (0 - negZC) / (posZC - negZC)) + 0.5);
               }

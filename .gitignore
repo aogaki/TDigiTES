@@ -47,3 +47,5 @@ work.cpp
 memo
 tmp/
 .vscode/
+test/
+build/

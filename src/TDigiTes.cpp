@@ -81,11 +81,7 @@ void TDigiTes::GetBoardInfo()
 {
   CAEN_DGTZ_BoardInfo_t info;
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
-    // Check ch mask
-    auto err = CAEN_DGTZ_GetChannelEnableMask(fHandler[iBrd], &fChMask[iBrd]);
-    PrintError(err, "GetChannelEnableMask");
-
-    err = CAEN_DGTZ_GetInfo(fHandler[iBrd], &info);
+    auto err = CAEN_DGTZ_GetInfo(fHandler[iBrd], &info);
     PrintError(err, "GetInfo");
 
     fNChs[iBrd] = info.Channels;
@@ -135,6 +131,10 @@ void TDigiTes::GetBoardInfo()
       fDigitizerModel = 720;
       fTSample[iBrd] = 4;
       fNBits = 12;
+    } else if (info.FamilyCode == 4) {
+      fDigitizerModel = 740;
+      fTSample[iBrd] = 16;
+      fNBits = 12;
     } else if (info.FamilyCode == 999) {  // temporary code for Hexagon
       fDigitizerModel = 5000;
       fTSample[iBrd] = 10;
@@ -154,6 +154,8 @@ void TDigiTes::GetBoardInfo()
       fFirmware = FirmWareCode::DPP_PSD;
     } else if (majorNumber == 132) {
       fFirmware = FirmWareCode::DPP_PSD;
+    } else if (majorNumber == 135) {
+      fFirmware = FirmWareCode::DPP_QDC;
     } else if (majorNumber == 136) {
       fFirmware = FirmWareCode::DPP_PSD;  // NOTE: valid also for x725
     } else if (majorNumber == 139) {
@@ -162,10 +164,21 @@ void TDigiTes::GetBoardInfo()
       fFirmware = FirmWareCode::STD;
     }
 
+    // Check ch mask
+    if (fFirmware == FirmWareCode::DPP_QDC) {
+      err = CAEN_DGTZ_GetGroupEnableMask(fHandler[iBrd], &fChMask[iBrd]);
+      PrintError(err, "GetChannelEnableMask");
+    } else {
+      err = CAEN_DGTZ_GetChannelEnableMask(fHandler[iBrd], &fChMask[iBrd]);
+      PrintError(err, "GetChannelEnableMask");
+    }
+
     std::cout << "Time sample length:\t" << fTSample[iBrd] << " ns\n"
               << "ADC resolution:\t" << fNBits << " bits\n"
               << "Firmware code:\t" << int(fFirmware) << std::endl;
   }
+
+  std::cout << std::endl;
 }
 
 void TDigiTes::Start()
@@ -190,42 +203,6 @@ void TDigiTes::ReadEvents()
 {
   ReadRawData();
   DecodeRawData();
-}
-
-void TDigiTes::ReadRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    ReadRawData();
-    usleep(fReadInterval);
-  }
-
-  std::cout << "ReadRawData done" << std::endl;
-}
-
-void TDigiTes::DecodeRawDataWrapper()
-{
-  while (fReadoutFlag) {
-    DecodeRawData();
-    usleep(fDecodeInterval);
-  }
-
-  std::cout << "DecodeRawData done" << std::endl;
-}
-
-void TDigiTes::StartReadoutMT()
-{
-  SetIntervals();
-
-  fReadoutFlag = true;
-  fReadThread = std::thread(&TDigiTes::ReadRawDataWrapper, this);
-  fDecodeThread = std::thread(&TDigiTes::DecodeRawDataWrapper, this);
-}
-
-void TDigiTes::StopReadoutMT()
-{
-  fReadoutFlag = false;
-  fReadThread.join();
-  fDecodeThread.join();
 }
 
 void TDigiTes::SetIntervals()
@@ -253,9 +230,9 @@ std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> TDigiTes::GetData()
 
 void TDigiTes::Test()
 {
-  for (auto b = 0; b < fWDcfg.NumBrd; b++) {
-    CAEN_DGTZ_DisableEventAlignedReadout(fHandler[b]);
-  }
+  // for (auto b = 0; b < fWDcfg.NumBrd; b++) {
+  //   CAEN_DGTZ_DisableEventAlignedReadout(fHandler[b]);
+  // }
 }
 
 void TDigiTes::DumpRegisters()

@@ -23,6 +23,7 @@ enum class FirmWareCode {
   // Its are not same as CAENDigitizerType.h
   DPP_PSD,
   DPP_PHA,
+  DPP_QDC,
   DPP_ChInt,  // DPP_CI is already used by digiTes
   STD,
 };
@@ -58,8 +59,6 @@ class TDigiTes
   // Event readout
   std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> GetData();
   void ReadEvents();
-  void StartReadoutMT();
-  void StopReadoutMT();
 
   virtual void UseFineTS() = 0;
   virtual void UseHWFineTS() = 0;
@@ -96,11 +95,7 @@ class TDigiTes
   typedef std::shared_ptr<std::vector<std::vector<char>>> RawData_t;
   std::deque<RawData_t> fRawDataQue;
   virtual void ReadRawData() = 0;
-  void ReadRawDataWrapper();
-  std::thread fReadThread;
   virtual void DecodeRawData() = 0;
-  void DecodeRawDataWrapper();
-  std::thread fDecodeThread;
   bool fReadoutFlag;
   std::mutex fMutex;
   void SetIntervals();

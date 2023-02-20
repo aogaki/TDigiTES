@@ -81,7 +81,7 @@
 // Definition of limits and sizes
 //****************************************************************************
 #define MAX_NBRD 8  // max. number of boards
-#define MAX_NCH 32  // max. number of channels (physical+virtual)
+#define MAX_NCH 64  // max. number of channels (physical+virtual)
 
 #define EMAXNBITS (1 << 14)  // Max num of bits for the Energy histograms
 #define TMAXNBITS (1 << 14)  // Max num of bits for the Time histograms
@@ -135,6 +135,7 @@
 #define DPP_PHA_724 0x0004
 #define DPP_PHA_730 0x0005
 #define DPP_nPHA_724 0x0006
+#define DPP_QDC_740 0x0007
 #define STD_730 0x1000
 
 #define IS_STD_FW(fw) (fw & 0x1000)
@@ -446,6 +447,7 @@ typedef struct Config_t {
   int CoincMode;  // Coincidence Mode (0=disabled, 1 = majority, 2=couples, 3=one_to_all, 4=ext_trg)
   int AntiCoincidence;  // When 1, it negates coincide logic (invert accepted and rejected events)
   int MajorityLevel;  // Min number of channels triggered to validate the majority
+  int TrgMode;        // Used for QDC FW
 
   // Channel Settings
   int EnableInput[MAX_NBRD][MAX_NCH];    // Enable input

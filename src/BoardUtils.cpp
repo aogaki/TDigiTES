@@ -18,6 +18,8 @@
 
 #include <stdio.h>
 
+#include <iostream>
+
 // #include "Console.h"
 #include "digiTES.h"
 #ifdef WIN32
@@ -263,6 +265,7 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
 
   sprintf(ConnectString, "%s, %d, %d, ", BoardInfo.ModelName,
           BoardInfo.Channels, BoardInfo.SerialNumber);
+  std::cout << "Family code: " << BoardInfo.FamilyCode << std::endl;
   if (BoardInfo.FamilyCode == 5) {
     WDcfg.DigitizerModel = 751;
     WDcfg.Tsampl = 1;
@@ -291,6 +294,12 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
     WDcfg.DigitizerModel = 720;
     WDcfg.Tsampl = 4;
     WDcfg.Nbit = 12;
+  } else if (BoardInfo.FamilyCode == 4) {
+    WDcfg.DigitizerModel = 740;
+    WDcfg.Tsampl = 16;
+    WDcfg.Nbit = 12;
+    // For 740, digitizer return the number of groups not channels
+    WDcfg.NumPhyCh *= 8;
   } else if (BoardInfo.FamilyCode == 999) {  // temporary code for Hexagon
     WDcfg.DigitizerModel = 5000;
     WDcfg.Tsampl = 10;
@@ -303,6 +312,9 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
   /* Check firmware revision (only DPP firmware can be used with this Demo) */
   sscanf(BoardInfo.AMC_FirmwareRel, "%d", &MajorNumber);
   sscanf(&BoardInfo.AMC_FirmwareRel[4], "%d", &MinorNumber);
+  std::cout << "MajorNumber: " << MajorNumber << "\n"
+            << "MinorNumber: " << MinorNumber << std::endl;
+
   WDcfg.FWrev = MinorNumber;
   if (WDcfg.DigitizerModel == 5000) {  // Hexagon
     sprintf(WDcfg.FwTypeString, "DPP_PHA_Hexagon");
@@ -338,6 +350,10 @@ int ReadBoardInfo(int b, char *ConnectString, Config_t &WDcfg,
     sprintf(WDcfg.FwTypeString, "DPP_PHA");
     WDcfg.DppType = DPP_PHA_730;  // NOTE: valid also for x725
     strcat(ConnectString, "DPP_PHA_730, ");
+  } else if (MajorNumber == 135) {
+    sprintf(WDcfg.FwTypeString, "DPP_QDC");
+    WDcfg.DppType = DPP_QDC_740;  // NOTE: valid also for x725
+    strcat(ConnectString, "DPP_QDC, ");
   } else {
     sprintf(WDcfg.FwTypeString, "Raw Waveform (Std. FW)");
     WDcfg.DppType = STD_730;

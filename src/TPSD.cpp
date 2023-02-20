@@ -9,7 +9,6 @@
 TPSD::TPSD()
 {
   for (auto iBrd = 0; iBrd < MAX_NBRD; iBrd++) {
-    std::cout << iBrd << std::endl;
     fpReadoutBuffer[iBrd] = nullptr;
     fpPSDWaveform[iBrd] = nullptr;
     fppPSDEvents[iBrd] = nullptr;
@@ -245,7 +244,7 @@ void TPSD::UseFineTS()
 
     // Trace settings
     RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 2, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
@@ -268,7 +267,7 @@ void TPSD::UseHWFineTS()
 
     // Trace settings
     RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 2, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }

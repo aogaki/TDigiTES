@@ -298,6 +298,7 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
     WDcfg->PreTrigger = 128;
     WDcfg->TrgHoldOff = 1;
     WDcfg->CoincMode = 0;
+    WDcfg->TrgMode = 0;
     WDcfg->AntiCoincidence = 0;
     WDcfg->CoincWindow = 10;
     WDcfg->MajorityLevel = 2;
@@ -666,6 +667,21 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
         WDcfg->TrgoutMode = TRGOUT_SIGSCOPE;
       else
         printf("WARNING: %s: invalid setting for %s\n", str1, str);
+    }
+    if (streq(str, "TrgMode")) {
+      fscanf(f_ini, "%s", str1);
+      if (streq(str1, "NORMAL")) {
+        WDcfg->TrgMode = 0;
+      } else if (streq(str1, "PAIRED")) {
+        WDcfg->TrgMode = 1;
+      } else if (streq(str1, "EXTERNAL")) {
+        WDcfg->TrgMode = 2;
+      } else {
+        std::cout << "TrgMode not support " << str1
+                  << ". Options are NORMAL, PAIRED, and EXTERNAL only now.\n"
+                  << "TrgMode set as NORMAL." << std::endl;
+        WDcfg->TrgMode = 0;
+      }
     }
     if (streq(str, "CoincMode")) {
       fscanf(f_ini, "%s", str1);
