@@ -102,6 +102,9 @@ class TDigiTes
   unsigned int fReadInterval = 10000;
   unsigned int fDecodeInterval = 1000;
 
+  void SetStartMod(uint32_t startMod = 0) { fStartMod = startMod; };
+  uint32_t fStartMod = 0;
+
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;
 };

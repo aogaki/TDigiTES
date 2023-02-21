@@ -118,7 +118,7 @@ void TPHA::DecodeRawData()
             PrintError(err, "DecodeDPPWaveforms");
 
             auto data = std::make_shared<TreeData_t>(fpPHAWaveform[iBrd]->Ns);
-            data->Mod = iBrd;
+            data->Mod = iBrd + fStartMod;
             data->Ch = iCh;
             data->Extras = fppPHAEvents[iBrd][iCh][iEve]
                                .Extras2;  // For Extended time stamp
