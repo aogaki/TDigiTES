@@ -225,7 +225,7 @@ void TPSD::DecodeRawData()
             PrintError(err, "DecodeDPPWaveforms");
 
             auto data = std::make_shared<TreeData_t>(fpPSDWaveform[iBrd]->Ns);
-            data->Mod = iBrd;
+            data->Mod = iBrd + fStartMod;
             data->Ch = iCh;
             data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
             data->ChargeShort = fppPSDEvents[iBrd][iCh][iEve].ChargeShort;

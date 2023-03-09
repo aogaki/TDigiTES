@@ -533,7 +533,7 @@ void TQDC::DecodeRawData()
             PrintError(err, "DecodeDPPWaveforms");
 
             auto data = std::make_shared<TreeData_t>(fpQDCWaveform[iBrd]->Ns);
-            data->Mod = iBrd;
+            data->Mod = iBrd + fStartMod;
             data->Ch = iCh;
             data->ChargeLong = fppQDCEvents[iBrd][iCh][iEve].Charge;
             data->ChargeShort = 0;

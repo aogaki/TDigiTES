@@ -129,7 +129,7 @@ void TWaveform::DecodeRawData()
 
           const uint32_t waveformSize = fpEventStd[iBrd]->ChSize[iCh];
           auto data = std::make_shared<TreeData_t>(waveformSize);
-          data->Mod = iBrd;
+          data->Mod = iBrd + fStartMod;
           data->Ch = iCh;
           data->TimeStamp = timeStamp;
           data->FineTS = 1000. * timeStamp;

@@ -70,6 +70,7 @@ class TDigiTes
   virtual void UseTrgCounter(const int mod, const int ch) = 0;
 
   void Test();
+  void SetStartMod(uint32_t startMod = 0) { fStartMod = startMod; };
 
  protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
@@ -107,6 +108,8 @@ class TDigiTes
   void SetIntervals();
   unsigned int fReadInterval = 10000;
   unsigned int fDecodeInterval = 1000;
+
+  uint32_t fStartMod = 0;
 
   void PrintError(const CAEN_DGTZ_ErrorCode &err,
                   const std::string &funcName = "") const;
