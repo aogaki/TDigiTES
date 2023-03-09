@@ -40,6 +40,8 @@ class TQDC : public TDigiTes
 
   void SetThreshold() override;
 
+  void ReadSmallData() override;
+
   void Test();
 
  private:

@@ -60,6 +60,11 @@ class TDigiTes
   std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> GetData();
   void ReadEvents();
 
+  // Event readout for need the speed
+  // Delete events will be done by outside of TDigiTES.  Dangerous!!
+  std::vector<SmallData_t *> *GetSmallData() { return fSmallDataVec; };
+  virtual void ReadSmallData() = 0;
+
   virtual void UseFineTS() = 0;
   virtual void UseHWFineTS() = 0;
   virtual void UseTrgCounter(const int mod, const int ch) = 0;
@@ -91,6 +96,7 @@ class TDigiTes
   uint32_t fLostTrgCounterOffset[MAX_NBRD][MAX_NCH];
 
   std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> fDataVec;
+  std::vector<SmallData_t *> *fSmallDataVec;
 
   typedef std::shared_ptr<std::vector<std::vector<char>>> RawData_t;
   std::deque<RawData_t> fRawDataQue;

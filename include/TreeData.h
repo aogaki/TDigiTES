@@ -43,4 +43,21 @@ class TreeData
 };
 typedef TreeData TreeData_t;
 
+class SmallData
+{  // no getter setter.  using public member variables.
+ public:
+  SmallData(){};
+
+  ~SmallData(){};
+
+  uint8_t Mod;
+  uint8_t Ch;
+  double FineTS;  // expecting 64 bits
+  uint16_t ChargeLong;
+
+  static const uint16_t OneHitSize =
+      sizeof(Mod) + sizeof(Ch) + sizeof(FineTS) + sizeof(ChargeLong);
+};
+typedef SmallData SmallData_t;
+
 #endif

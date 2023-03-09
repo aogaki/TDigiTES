@@ -474,6 +474,8 @@ void TQDC::FreeMemory()
   }
 }
 
+void TQDC::ReadSmallData() {}
+
 void TQDC::ReadRawData()
 {
   RawData_t rawData(new std::vector<std::vector<char>>);

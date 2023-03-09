@@ -37,6 +37,8 @@ class TPHA : public TDigiTes
   void SetTrapezoidPar();
   void SetPHAPar();  // Both threshold and trapezoid, and more
 
+  void ReadSmallData() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer

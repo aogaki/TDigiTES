@@ -78,6 +78,98 @@ void TPSD::FreeMemory()
     }
   }
 }
+void TPSD::ReadSmallData()
+{
+  fSmallDataVec = new std::vector<SmallData_t *>();
+  fSmallDataVec->reserve(100000);
+
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    uint32_t bufferSize;
+    auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
+                                  CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                                  fpReadoutBuffer[iBrd], &bufferSize);
+    PrintError(err, "ReadData");
+    // in the case of 0, GetDPPEvents makes crush
+    if (bufferSize == 0) continue;
+
+    uint32_t nEvents[MAX_NCH];
+    err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
+                                 bufferSize, (void **)(fppPSDEvents[iBrd]),
+                                 nEvents);
+    PrintError(err, "GetDPPEvents");
+
+    if (err == CAEN_DGTZ_Success) {
+      for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
+        for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+          err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
+                                             &(fppPSDEvents[iBrd][iCh][iEve]),
+                                             fpPSDWaveform[iBrd]);
+          PrintError(err, "DecodeDPPWaveforms");
+
+          auto data = new SmallData_t();
+          data->Mod = iBrd;
+          data->Ch = iCh;
+          data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
+          auto Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
+          uint64_t TimeStamp = 0;
+
+          uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
+          if (fFlagHWFineTS) {
+            uint64_t extTS = ((uint64_t)((Extras >> 16) & 0xFFFF) << 31);
+            uint64_t tdc = (timeTag + extTS) * fWDcfg.Tsampl;
+            TimeStamp = tdc;
+          } else {
+            const uint64_t TSMask =
+                (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
+            if (timeTag < fPreviousTime[iBrd][iCh]) {
+              fTimeOffset[iBrd][iCh] += (TSMask + 1);
+            }
+            fPreviousTime[iBrd][iCh] = timeTag;
+            uint64_t tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+            TimeStamp = tdc;
+          }
+
+          data->FineTS = 0.;
+          if (fFlagFineTS) {
+            // For safety and to kill the rounding error, cleary using double
+            double posZC = uint16_t((Extras >> 16) & 0xFFFF);
+            double negZC = uint16_t(Extras & 0xFFFF);
+            double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
+            if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD ||
+                fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
+              thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+
+            if ((negZC <= thrZC) && (posZC >= thrZC)) {
+              double dt = (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+              data->FineTS =
+                  ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
+            }
+          } else if (fFlagHWFineTS) {
+            double fineTS = Extras & 0b1111111111;  // 10 bits
+            data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
+            // data->FineTS = fWDcfg.Tsampl * fineTS;
+            // data->FineTS = fineTS;
+          }
+          data->FineTS = data->FineTS + (1000 * TimeStamp);
+
+          if (fFlagTrgCounter[iBrd][iCh]) {
+            // use fine ts as lost trigger counter;
+            double lostTrg = uint16_t((Extras >> 16) & 0xFFFF);
+            lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+            if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+              lostTrg += 0xFFFF;
+              fLostTrgCounterOffset[iBrd][iCh]++;
+            }
+            fLostTrgCounter[iBrd][iCh] = lostTrg;
+            data->FineTS = lostTrg;
+          }
+
+          fSmallDataVec->push_back(data);
+        }
+      }
+    }
+  }
+}
 
 void TPSD::ReadRawData()
 {
