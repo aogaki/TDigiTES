@@ -199,12 +199,31 @@ int GetHnbin(FILE *f_ini)
 // ---------------------------------------------------------------------------------------------------------
 void SetChannelParam(int param[MAX_NBRD][MAX_NCH], int val)
 {
-  int i, b;
-  if (ch == -1)
-    for (b = 0; b < MAX_NBRD; b++)
-      for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
-  else
-    param[brd][ch] = val;
+  int startBrd = 0;
+  int stopBrd = MAX_NBRD;
+  int startCh = 0;
+  int stopCh = MAX_NCH;
+  if (brd != -1) {
+    startBrd = brd;
+    stopBrd = brd + 1;
+  }
+  if (ch != -1) {
+    startCh = ch;
+    stopCh = ch + 1;
+  }
+
+  for (auto iBrd = startBrd; iBrd < stopBrd; iBrd++) {
+    for (auto iCh = startCh; iCh < stopCh; iCh++) {
+      param[iBrd][iCh] = val;
+    }
+  }
+
+  // int i, b;
+  // if (ch == -1)
+  //   for (b = 0; b < MAX_NBRD; b++)
+  //     for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
+  // else
+  //   param[brd][ch] = val;
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -216,12 +235,31 @@ void SetChannelParam(int param[MAX_NBRD][MAX_NCH], int val)
 // ---------------------------------------------------------------------------------------------------------
 void SetChannelfParam(float param[MAX_NBRD][MAX_NCH], float val)
 {
-  int i, b;
-  if (ch == -1)
-    for (b = 0; b < MAX_NBRD; b++)
-      for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
-  else
-    param[brd][ch] = val;
+  int startBrd = 0;
+  int stopBrd = MAX_NBRD;
+  int startCh = 0;
+  int stopCh = MAX_NCH;
+  if (brd != -1) {
+    startBrd = brd;
+    stopBrd = brd + 1;
+  }
+  if (ch != -1) {
+    startCh = ch;
+    stopCh = ch + 1;
+  }
+
+  for (auto iBrd = startBrd; iBrd < stopBrd; iBrd++) {
+    for (auto iCh = startCh; iCh < stopCh; iCh++) {
+      param[iBrd][iCh] = val;
+    }
+  }
+
+  // int i, b;
+  // if (ch == -1)
+  //   for (b = 0; b < MAX_NBRD; b++)
+  //     for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
+  // else
+  //   param[brd][ch] = val;
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -233,14 +271,33 @@ void SetChannelfParam(float param[MAX_NBRD][MAX_NCH], float val)
 // ---------------------------------------------------------------------------------------------------------
 void SetChannelParamFloat(float param[MAX_NBRD][MAX_NCH], float val)
 {
-  int i, b;
-  if (ch == -1)
-    for (b = 0; b < MAX_NBRD; b++)
-      for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
-  else if (brd == -1)
-    param[0][ch] = val;
-  else
-    param[brd][ch] = val;
+  int startBrd = 0;
+  int stopBrd = MAX_NBRD;
+  int startCh = 0;
+  int stopCh = MAX_NCH;
+  if (brd != -1) {
+    startBrd = brd;
+    stopBrd = brd + 1;
+  }
+  if (ch != -1) {
+    startCh = ch;
+    stopCh = ch + 1;
+  }
+
+  for (auto iBrd = startBrd; iBrd < stopBrd; iBrd++) {
+    for (auto iCh = startCh; iCh < stopCh; iCh++) {
+      param[iBrd][iCh] = val;
+    }
+  }
+
+  // int i, b;
+  // if (ch == -1)
+  //   for (b = 0; b < MAX_NBRD; b++)
+  //     for (i = 0; i < MAX_NCH; i++) param[b][i] = val;
+  // else if (brd == -1)
+  //   param[0][ch] = val;
+  // else
+  //   param[brd][ch] = val;
 }
 
 // ---------------------------------------------------------------------------------------------------------
