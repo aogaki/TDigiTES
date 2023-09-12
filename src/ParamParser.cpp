@@ -585,6 +585,8 @@ int ParseConfigFile(FILE *f_ini, Config_t *WDcfg, SysVars_t &SysVars)
           WDcfg->LinkType[brd] = CAEN_DGTZ_USB;
         else if (streq(str1, "PCI"))
           WDcfg->LinkType[brd] = CAEN_DGTZ_OpticalLink;
+        else if  (streq(str1, "USB_CONET"))
+          WDcfg->LinkType[brd] = CAEN_DGTZ_USB_A4818;
         else if (streq(str1, "VIRTUAL"))
           WDcfg->LinkType[brd] = VIRTUAL_BOARD_TYPE;
         else
