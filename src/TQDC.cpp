@@ -69,16 +69,10 @@ void TQDC::InitDigitizers()
       PrintError(err, "CAEN_DGTZ_SetChannelTriggerThreshold");
     }
 
-    // TODO: Check the meaning of group self trigger.
     // Generating the common trigger for the group?
     err = CAEN_DGTZ_SetGroupSelfTrigger(fHandler[iBrd],
                                         CAEN_DGTZ_TRGMODE_ACQ_ONLY, 0x00);
     PrintError(err, "CAEN_DGTZ_SetGroupSelfTrigger");
-    // for (auto iGroup = 0; iGroup < nGroups; iGroup++) {
-    //   CAEN_DGTZ_TriggerMode_t mode;
-    //   CAEN_DGTZ_GetGroupSelfTrigger(fHandler[iBrd], iGroup, &mode);
-    //   std::cout << "Trg mode, Group" << iGroup << "\t" << mode << std::endl;
-    // }
 
     err =
         CAEN_DGTZ_SetSWTriggerMode(fHandler[iBrd], CAEN_DGTZ_TRGMODE_ACQ_ONLY);
@@ -99,9 +93,15 @@ void TQDC::InitDigitizers()
     // Aogaki: Not checked after this line
 
     // TODO: Check -1 is working for QDC or not
-    std::cout << fWDcfg.PreTrigger << std::endl;
-    err = CAEN_DGTZ_SetDPPPreTriggerSize(fHandler[iBrd], -1, fWDcfg.PreTrigger);
-    PrintError(err, "CAEN_DGTZ_SetDPPPreTriggerSize");
+    // Probably this does not support QDC
+    // std::cout << fWDcfg.PreTrigger << std::endl;
+    // err = CAEN_DGTZ_SetDPPPreTriggerSize(fHandler[iBrd], -1, fWDcfg.PreTrigger);
+    // PrintError(err, "CAEN_DGTZ_SetDPPPreTriggerSize");
+    for (auto iGrp = 0; iGrp < nGroups; iGrp++) {
+      err = CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x103C + iGrp * 0x100,
+                                    fWDcfg.PreTrigger);
+      PrintError(err, "CAEN_DGTZ_WriteRegister");
+    }
 
     err =
         CAEN_DGTZ_SetDPPParameters(fHandler[iBrd], groupMask, &fQDCParameters);
@@ -122,6 +122,8 @@ void TQDC::InitDigitizers()
 
     err = CAEN_DGTZ_SetDPPEventAggregation(fHandler[iBrd],
                                            fWDcfg.EventBuffering, 0);
+
+    RegisterSetBits(fHandler[iBrd], 0x8000, 17, 17, 1, fWDcfg);  // Enable Extra
   }
 
   SetFrontPanel();
@@ -179,19 +181,6 @@ void TQDC::SetTRGIN()
           fHandler[iBrd], 0x811C, 10, 11, 3,
           fWDcfg);  // propagate ext-trg "as is" to channels (will be
                     // used as a validation for the self triggers)
-      for (auto i = 0; i < 8; i++)
-        err |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8180 + i * 4,
-                                       0);  // not used
-      if (fWDcfg.DppType == DPP_PSD_730)
-        err |= RegisterSetBits(
-            fHandler[iBrd], 0x8084, 4, 5, 1,
-            fWDcfg);  // set individual trgin mode = from MB (not
-                      // used, masks are disabled)
-      if (fWDcfg.DppType == DPP_PHA_730)
-        err |= RegisterSetBits(
-            fHandler[iBrd], 0x80A0, 4, 5, 1,
-            fWDcfg);  // set individual trgin mode = from MB (not
-                      // used, masks are disabled)
 
     } else if (fWDcfg.TrginMode ==
                TRGIN_MODE_COINC) {  // TrgIn fan out to each channel (individual
@@ -199,9 +188,9 @@ void TQDC::SetTRGIN()
       err |= CAEN_DGTZ_WriteRegister(fHandler[iBrd],
                                      CAEN_DGTZ_TRIGGER_SRC_ENABLE_ADD,
                                      0x80000000);  // accept SW trg only
-      for (auto i = 0; i < 8; i++)
-        err |=
-            CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8180 + i * 4, 0x40000000);
+      // for (auto i = 0; i < 8; i++)
+      //   err |=
+      //       CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8180 + i * 4, 0x40000000);
     }
   }
 }
@@ -217,7 +206,7 @@ void TQDC::SetTRGOUT()
       ret |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8110, 0x40000000);
     } else if (fWDcfg.TrgoutMode ==
                TRGOUT_MODE_CH_TRG) {  // propagate self triggers (with mask)
-      ret |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8110, fWDcfg.TrgoutMask);
+      // ret |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8110, fWDcfg.TrgoutMask);
     } else if (fWDcfg.TrgoutMode ==
                TRGOUT_MODE_SYNC_OUT) {  // propagate sync signal (start/stop)
       ret |= RegisterSetBits(fHandler[iBrd], 0x811C, 16, 17, 0x1, fWDcfg);
@@ -226,36 +215,21 @@ void TQDC::SetTRGOUT()
       ret |= CAEN_DGTZ_WriteRegister(
           fHandler[iBrd], CAEN_DGTZ_FRONT_PANEL_IO_CTRL_ADD, 0x00050000);
     } else if (fWDcfg.TrgoutMode == TRGOUT_SIGSCOPE) {  //
-      ret |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8110, fWDcfg.TrgoutMask);
-      if (fWDcfg.DppType ==
-          DPP_PSD_730) {  // replace selftrg with an internal digital probe for
-                          // debugging (on x730/x725 PSD only)
-        ret |= RegisterSetBits(fHandler[iBrd], 0x8084, 20, 23, 7,
-                               fWDcfg);  // 1  => overth;
-                                         // 2  => selftrg;
-                                         // 3  => pu_trg;
-        // 4  => pu_trg or selftrg;
-        // 5  => veto;
-        // 6  => coincp;
-        // 7  => trgval;
-        // 8  => tvaw;
-        // 9  => npulse;
-        // 10 => gpulse;
-      }
+      // ret |= CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8110, fWDcfg.TrgoutMask);
     } else {  // Use TRGOUT/GPO as a test pulser
       ret |= RegisterSetBits(fHandler[iBrd], 0x811C, 15, 15, 1, fWDcfg);
-      if (fWDcfg.TrgoutMode == TRGOUT_MODE_SQR_1KHZ)
-        ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 1,
-                               fWDcfg);  // 1 KHz square wave
-      if (fWDcfg.TrgoutMode == TRGOUT_MODE_PLS_1KHZ)
-        ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 2,
-                               fWDcfg);  // 1 KHz pulses
-      if (fWDcfg.TrgoutMode == TRGOUT_MODE_SQR_10KHZ)
-        ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 3,
-                               fWDcfg);  // 10 KHz square wave
-      if (fWDcfg.TrgoutMode == TRGOUT_MODE_PLS_10KHZ)
-        ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 4,
-                               fWDcfg);  // 10 KHz pulses
+      // if (fWDcfg.TrgoutMode == TRGOUT_MODE_SQR_1KHZ)
+      //   ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 1,
+      //                          fWDcfg);  // 1 KHz square wave
+      // if (fWDcfg.TrgoutMode == TRGOUT_MODE_PLS_1KHZ)
+      //   ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 2,
+      //                          fWDcfg);  // 1 KHz pulses
+      // if (fWDcfg.TrgoutMode == TRGOUT_MODE_SQR_10KHZ)
+      //   ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 3,
+      //                          fWDcfg);  // 10 KHz square wave
+      // if (fWDcfg.TrgoutMode == TRGOUT_MODE_PLS_10KHZ)
+      //   ret |= RegisterSetBits(fHandler[iBrd], 0x8168, 0, 2, 4,
+      //                          fWDcfg);  // 10 KHz pulses
     }
   }
 }
@@ -525,7 +499,6 @@ void TQDC::DecodeRawData()
       if (err == CAEN_DGTZ_Success) {
         // for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
         for (uint iCh = 0; iCh < 64; iCh++) {
-          std::cout << nEvents[iCh] << std::endl;
           for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
             err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                                &(fppQDCEvents[iBrd][iCh][iEve]),
@@ -557,41 +530,41 @@ void TQDC::DecodeRawData()
               data->TimeStamp = tdc;
             }
 
-            data->FineTS = 0.;
-            if (fFlagFineTS) {
-              // For safety and to kill the rounding error, cleary using double
-              double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
-              double negZC = uint16_t(data->Extras & 0xFFFF);
-              double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
-              if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD ||
-                  fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
-                thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
+            data->FineTS = (1000 * data->TimeStamp);
+            // if (fFlagFineTS) {
+            //   // For safety and to kill the rounding error, cleary using double
+            //   double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
+            //   double negZC = uint16_t(data->Extras & 0xFFFF);
+            //   double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
+            //   if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD ||
+            //       fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
+            //     thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
 
-              if ((negZC <= thrZC) && (posZC >= thrZC)) {
-                double dt =
-                    (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
-                data->FineTS =
-                    ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
-              }
-            } else if (fFlagHWFineTS) {
-              double fineTS = data->Extras & 0b1111111111;  // 10 bits
-              data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
-              // data->FineTS = fWDcfg.Tsampl * fineTS;
-              // data->FineTS = fineTS;
-            }
-            data->FineTS = data->FineTS + (1000 * data->TimeStamp);
+            //   if ((negZC <= thrZC) && (posZC >= thrZC)) {
+            //     double dt =
+            //         (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
+            //     data->FineTS =
+            //         ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
+            //   }
+            // } else if (fFlagHWFineTS) {
+            //   double fineTS = data->Extras & 0b1111111111;  // 10 bits
+            //   data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
+            //   // data->FineTS = fWDcfg.Tsampl * fineTS;
+            //   // data->FineTS = fineTS;
+            // }
+            // data->FineTS = data->FineTS + (1000 * data->TimeStamp);
 
-            if (fFlagTrgCounter[iBrd][iCh]) {
-              // use fine ts as lost trigger counter;
-              double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
-              lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
-              if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
-                lostTrg += 0xFFFF;
-                fLostTrgCounterOffset[iBrd][iCh]++;
-              }
-              fLostTrgCounter[iBrd][iCh] = lostTrg;
-              data->FineTS = lostTrg;
-            }
+            // if (fFlagTrgCounter[iBrd][iCh]) {
+            //   // use fine ts as lost trigger counter;
+            //   double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
+            //   lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+            //   if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+            //     lostTrg += 0xFFFF;
+            //     fLostTrgCounterOffset[iBrd][iCh]++;
+            //   }
+            //   fLostTrgCounter[iBrd][iCh] = lostTrg;
+            //   data->FineTS = lostTrg;
+            // }
 
             if (data->RecordLength > 0) {
               constexpr auto eleSizeShort = sizeof(data->Trace1[0]);
@@ -638,15 +611,15 @@ void TQDC::UseFineTS()
       // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b010,
       //                 fWDcfg);
       // Using extra as zero crossing information
-      RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
-                      fWDcfg);
+      // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
+      //                 fWDcfg);
     }
 
     // Trace settings
-    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
 
   fFlagHWFineTS = false;
@@ -658,18 +631,18 @@ void TQDC::UseHWFineTS()
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
       // Using extra as fine TS
-      RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b010,
-                      fWDcfg);
+      // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b010,
+      //                 fWDcfg);
       // Using extra as zero crossing information
       // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
       //                 fWDcfg);
     }
 
     // Trace settings
-    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
     RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
+    // RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
 
   fFlagFineTS = false;
@@ -678,27 +651,27 @@ void TQDC::UseHWFineTS()
 
 void TQDC::UseTrgCounter(const int mod, const int ch)
 {
-  for (auto iMod = 0; iMod < MAX_NBRD; iMod++) {
-    for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
-      if ((mod == -1 || mod == iMod) && (ch == -1 || ch == iCh)) {
-        fFlagTrgCounter[iMod][iCh] = true;
-        RegisterSetBits(fHandler[iMod], 0x1084 + (iCh << 8), 8, 10, 0b100,
-                        fWDcfg);
-      }
-    }
-  }
+  // for (auto iMod = 0; iMod < MAX_NBRD; iMod++) {
+  //   for (auto iCh = 0; iCh < MAX_NCH; iCh++) {
+  //     if ((mod == -1 || mod == iMod) && (ch == -1 || ch == iCh)) {
+  //       fFlagTrgCounter[iMod][iCh] = true;
+  //       RegisterSetBits(fHandler[iMod], 0x1084 + (iCh << 8), 8, 10, 0b100,
+  //                       fWDcfg);
+  //     }
+  //   }
+  // }
 }
 
 void TQDC::SetThreshold()
 {
-  if (fDigitizerModel == 730 || fDigitizerModel == 725) {
-    for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
-      for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
-        auto errCode =
-            CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x1060 + (iCh << 8),
-                                    fWDcfg.TrgThreshold[iBrd][iCh]);
-        PrintError(errCode, "SetThreshold");
-      }
-    }
-  }
+  // if (fDigitizerModel == 730 || fDigitizerModel == 725) {
+  //   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+  //     for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+  //       auto errCode =
+  //           CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x1060 + (iCh << 8),
+  //                                   fWDcfg.TrgThreshold[iBrd][iCh]);
+  //       PrintError(errCode, "SetThreshold");
+  //     }
+  //   }
+  // }
 }

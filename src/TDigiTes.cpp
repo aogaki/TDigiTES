@@ -193,6 +193,7 @@ void TDigiTes::Start()
   }
 
   fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
+  fDataVec->reserve(1000000);
 
   StartAcquisition(fWDcfg, fHandler);
 }
@@ -225,6 +226,7 @@ std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> TDigiTes::GetData()
   std::lock_guard<std::mutex> lock(fMutex);
   auto retVal = fDataVec;
   fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
+  fDataVec->reserve(1000000);
   return retVal;
 }
 
