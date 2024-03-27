@@ -45,7 +45,7 @@
 #define PATH_SEPARATOR "/"
 #define EDIT_CFG_FILE "gedit digiTES_Config.txt &"
 #ifndef Sleep
-#define Sleep(x) usleep((x)*1000)
+#define Sleep(x) usleep((x) * 1000)
 #endif
 #define WAIT_ON_EXIT 0
 #ifdef _ROOT_

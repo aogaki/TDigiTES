@@ -34,6 +34,8 @@ class TPSD : public TDigiTes
 
   void ReadSmallData() override;
 
+  void SetTraces() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer

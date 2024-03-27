@@ -1,39 +1,20 @@
-#include <CAENDigitizer.h>
-#include <TApplication.h>
-#include <TCanvas.h>
-#include <TFile.h>
-#include <TGraph.h>
-#include <TH1.h>
-#include <TH2.h>
-#include <TSpline.h>
-#include <TTree.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
 
-#include <chrono>
 #include <iostream>
-#include <memory>
 #include <string>
-#include <thread>
 
-#include "BoardUtils.h"
-#include "Configure.h"
-#include "ParamParser.h"
-#include "TDigiTes.hpp"
-#include "TPHA.hpp"
-#include "TPSD.hpp"
-#include "TQDC.hpp"
-#include "TWaveform.hpp"
-#include "TreeData.h"
-#include "digiTES.h"
+#include "TDataTaking.hpp"
 
-int InputCHeck(void)
+enum class AppState { Quit, Reload, Continue };
+
+AppState InputCheck()
 {
   struct termios oldt, newt;
-  int ch;
+  char ch = -1;
   int oldf;
 
   tcgetattr(STDIN_FILENO, &oldt);
@@ -48,45 +29,44 @@ int InputCHeck(void)
   tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
   fcntl(STDIN_FILENO, F_SETFL, oldf);
 
-  if (ch != EOF) {
-    ungetc(ch, stdin);
-    return 1;
+  if (ch == 'q' || ch == 'Q') {
+    return AppState::Quit;
+  } else if (ch == 'r' || ch == 'R') {
+    return AppState::Reload;
   }
 
-  return 0;
+  return AppState::Continue;
 }
 
 int main(int argc, char *argv[])
 {
-  std::unique_ptr<TQDC> digitizer(new TQDC);
-  digitizer->LoadParameters("./QDC.conf");
-  digitizer->OpenDigitizers();
-  digitizer->InitDigitizers();
-  // digitizer->Test();
-  digitizer->AllocateMemory();
-  digitizer->Start();
-
-  // for (auto i = 0; i < 100; i++) {
-  //   digitizer->SendSWTrigger();
-  //   sleep(4);
-  //   digitizer->ReadEvents();
-  //   auto data = digitizer->GetData();
-  //   std::cout << "Size" << data->size() << std::endl;
-  // }
-
-  while (true) {
-    sleep(1);
-    digitizer->ReadEvents();
-    auto data = digitizer->GetData();
-    if (data->size() > 0) std::cout << "Size" << data->size() << std::endl;
-    if (InputCHeck()) break;
+  // Check arguments
+  std::string configFile;
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " <config file>" << std::endl;
+    return 1;
+  } else {
+    configFile = argv[1];
   }
 
-  digitizer->Stop();
+  auto dataTaking = std::make_unique<TDataTaking>(configFile);
 
-  digitizer->FreeMemory();
-  digitizer->CloseDigitizers();
+  dataTaking->InitAndStart();
 
-  std::cout << "Finished" << std::endl;
+  while (true) {
+    auto state = InputCheck();
+    if (state == AppState::Quit) {
+      break;
+    } else if (state == AppState::Reload) {
+      dataTaking->Stop();
+      dataTaking->InitAndStart();
+    }
+
+    dataTaking->DataProcess();
+    usleep(10);
+  }
+
+  dataTaking->Stop();
+
   return 0;
 }

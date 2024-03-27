@@ -44,6 +44,8 @@ class TQDC : public TDigiTes
 
   void Test();
 
+  void SetTraces() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer

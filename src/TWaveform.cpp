@@ -170,3 +170,13 @@ void TWaveform::SetThreshold()
     }
   }
 }
+
+void TWaveform::SetTraces()
+{
+  // Just for virtual functions
+}
+
+void TWaveform::ReadSmallData()
+{
+  // Just for virtual functions
+}

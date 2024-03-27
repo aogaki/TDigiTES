@@ -143,6 +143,7 @@ void TDigiTes::GetBoardInfo()
       PrintError(err, "Check Family code @ GetBoardInfo");
     }
 
+    auto previousFW = fFirmware;
     uint32_t majorNumber = atoi(info.AMC_FirmwareRel);
     if (fDigitizerModel == 5000) {        // Hexagon
       fFirmware = FirmWareCode::DPP_PHA;  // It will be never used at ELI?
@@ -162,6 +163,14 @@ void TDigiTes::GetBoardInfo()
       fFirmware = FirmWareCode::DPP_PHA;  // NOTE: valid also for x725
     } else {
       fFirmware = FirmWareCode::STD;
+    }
+    if (iBrd != 0 && previousFW != fFirmware) {
+      std::cerr
+          << "ERROR: Different firmware code in the same digitizer group.\n"
+             "Please make sure that all digitizers have the same firmware.\n"
+             "Or use different digitizer group for different firmware."
+          << std::endl;
+      exit(1);
     }
 
     // Check ch mask

@@ -317,16 +317,10 @@ void TPHA::UseFineTS()
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 8, 10, 0b101,
                       fWDcfg);
     }
-
-    // Trace settings
-    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b00, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b01, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);
   }
 
   fFlagFineTS = true;
+  fFlagHWFineTS = false;
 }
 
 void TPHA::UseHWFineTS()
@@ -340,17 +334,21 @@ void TPHA::UseHWFineTS()
       // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
       //                 fWDcfg);
     }
-
-    // Trace settings
-    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b00, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b01, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);
   }
 
   fFlagFineTS = false;
   fFlagHWFineTS = true;
+}
+
+void TPHA::SetTraces()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 0b11, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 14, 15, 0b00, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 20, 23, 0b0001, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b000, fWDcfg);
+  }
 }
 
 void TPHA::UseTrgCounter(const int mod, const int ch)

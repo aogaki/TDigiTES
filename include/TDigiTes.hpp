@@ -69,8 +69,13 @@ class TDigiTes
   virtual void UseHWFineTS() = 0;
   virtual void UseTrgCounter(const int mod, const int ch) = 0;
 
+  virtual void SetTraces() = 0;
+
   void Test();
   void SetStartMod(uint32_t startMod = 0) { fStartMod = startMod; };
+
+  void GetBoardInfo();
+  FirmWareCode GetFirmware() { return fFirmware; };
 
  protected:
   Config_t fWDcfg;     // acquisition parameters and user settings
@@ -78,7 +83,6 @@ class TDigiTes
   int fHandler[MAX_NBRD];
   uint32_t fChMask[MAX_NBRD];
 
-  void GetBoardInfo();
   int fTSample[MAX_NBRD];  // We need only this time sample information
   int fDigitizerModel;
   FirmWareCode fFirmware;

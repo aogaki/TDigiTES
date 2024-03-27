@@ -30,6 +30,9 @@ class TWaveform : public TDigiTes
 
   void SetThreshold();
 
+  void SetTraces() override;
+  void ReadSmallData() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                 // readout buffer

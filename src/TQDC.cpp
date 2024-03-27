@@ -614,13 +614,9 @@ void TQDC::UseFineTS()
       // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
       //                 fWDcfg);
     }
-
-    // Trace settings
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
+
+  SetTraces();
 
   fFlagHWFineTS = false;
   fFlagFineTS = true;
@@ -637,16 +633,17 @@ void TQDC::UseHWFineTS()
       // RegisterSetBits(fHandler[iBrd], 0x1084 + (iCh << 8), 8, 10, 0b101,
       //                 fWDcfg);
     }
-
-    // Trace settings
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 11, 11, 1, fWDcfg);
-    RegisterSetBits(fHandler[iBrd], 0x8000, 12, 13, 1, fWDcfg);
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 23, 25, 0b000, fWDcfg);
-    // RegisterSetBits(fHandler[iBrd], 0x8000, 26, 28, 0b111, fWDcfg);
   }
+
+  SetTraces();
 
   fFlagFineTS = false;
   fFlagHWFineTS = true;
+}
+
+void TQDC::SetTraces()
+{
+  // Use DPP library instead of write registers
 }
 
 void TQDC::UseTrgCounter(const int mod, const int ch)
