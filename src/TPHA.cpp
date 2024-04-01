@@ -440,7 +440,8 @@ void TPHA::SetPHAPar()
     }
   }
 }
-void TPHA::SetTrginVETO(uint32_t gateWidth)
+
+void TPHA::SetTrginVETO()
 {
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x810C, 0x80000000);
@@ -454,15 +455,15 @@ void TPHA::SetTrginVETO(uint32_t gateWidth)
     for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 2, 2, 1, fWDcfg);
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 6, 6, 1, fWDcfg);
-      CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x10D4 + (iCh << 8), gateWidth);
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 14, 15, 1, fWDcfg);
+      RegisterSetBits(fHandler[iBrd], 0x10D4 + (iCh << 8), 0, 15, 0, fWDcfg);
     }
 
-    RegisterSetBits(fHandler[iBrd], 0x8080, 18, 19, 3, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8080, 18, 19, 0b11, fWDcfg);
   }
 }
 
-void TPHA::SetTrginGate(uint32_t gateWidth)
+void TPHA::SetTrginGate()
 {
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x810C, 0x80000000);
@@ -476,10 +477,10 @@ void TPHA::SetTrginGate(uint32_t gateWidth)
     for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 2, 2, 1, fWDcfg);
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 6, 6, 1, fWDcfg);
-      CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x10D4 + (iCh << 8), gateWidth);
       RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 14, 15, 1, fWDcfg);
+      RegisterSetBits(fHandler[iBrd], 0x10D4 + (iCh << 8), 0, 15, 0, fWDcfg);
     }
 
-    RegisterSetBits(fHandler[iBrd], 0x8080, 18, 19, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x8080, 18, 19, 0b01, fWDcfg);
   }
 }

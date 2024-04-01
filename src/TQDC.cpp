@@ -87,7 +87,7 @@ void TQDC::InitDigitizers()
     std::cout << "Acq mode: " << fWDcfg.AcquisitionMode << std::endl;
     err = CAEN_DGTZ_SetDPPAcquisitionMode(
         fHandler[iBrd], (CAEN_DGTZ_DPP_AcqMode_t)fWDcfg.AcquisitionMode,
-        CAEN_DGTZ_DPP_SAVE_PARAM_ChargeAndTime);
+        CAEN_DGTZ_DPP_SAVE_PARAM_EnergyAndTime);
     PrintError(err, "CAEN_DGTZ_SetDPPAcquisitionMode");
 
     // Aogaki: Not checked after this line
@@ -672,3 +672,27 @@ void TQDC::SetThreshold()
   //   }
   // }
 }
+
+void TQDC::SetTrginVETO()
+{
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    // Probably 0x8000, 0x8004, bit 20 21 and following two lines???
+    // CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x810C, 0x80000000);
+    // RegisterSetBits(fHandler[iBrd], 0x811C, 10, 11, 3, fWDcfg);
+
+    // // for (auto iPair = 0; iPair < 8; iPair++)
+    // //   CAEN_DGTZ_WriteRegister(fHandler[iBrd], 0x8180 + iPair * 4, 0);
+
+    // RegisterSetBits(fHandler[iBrd], 0x80A0, 4, 5, 1, fWDcfg);
+
+    // for (auto iCh = 0; iCh < fWDcfg.NumPhyCh; iCh++) {
+    //   RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 2, 2, 1, fWDcfg);
+    //   RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 6, 6, 1, fWDcfg);
+    //   RegisterSetBits(fHandler[iBrd], 0x10A0 + (iCh << 8), 14, 15, 1, fWDcfg);
+    //   RegisterSetBits(fHandler[iBrd], 0x10D4 + (iCh << 8), 0, 15, 0, fWDcfg);
+    // }
+
+    // RegisterSetBits(fHandler[iBrd], 0x8080, 18, 19, 0b11, fWDcfg);
+  }
+}
+void TQDC::SetTrginGate() {}

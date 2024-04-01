@@ -60,10 +60,9 @@ int ProgramDigitizer(int brd, Config_t &WDcfg, const int handle[])
   // set the enable mask (16 bit)
   if (WDcfg.EnableMask[brd] == 0) {
     printf("WARNING: all channels of board %d are disabled!\n", brd);
-    if (WDcfg.NumBrd == 1)
-      return -1;
-    else
-      return 0;
+    if (WDcfg.NumBrd == 1) return -1;
+    // else
+    //   return 0;
   }
   ret |= CAEN_DGTZ_SetChannelEnableMask(handle[brd], WDcfg.EnableMask[brd]);
   WDcfg.TrgoutMask &= WDcfg.EnableMask[brd];  // HACK: must be board by board!

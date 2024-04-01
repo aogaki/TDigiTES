@@ -30,8 +30,8 @@ class TPHA : public TDigiTes
   void UseHWFineTS() override;
   void UseTrgCounter(const int mod, const int ch) override;
 
-  void SetTrginVETO(uint32_t gateWidth = 0);  // Test
-  void SetTrginGate(uint32_t gateWidth = 0);  // Test
+  void SetTrginVETO() override;  // Test
+  void SetTrginGate() override;  // Test
 
   void SetThreshold() override;
   void SetTrapezoidPar();

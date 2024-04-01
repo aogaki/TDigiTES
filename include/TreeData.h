@@ -30,12 +30,12 @@ class TreeData
   uint16_t ChargeShort;
   uint32_t Extras;
   uint32_t RecordLength;
-  std::vector<uint16_t> Trace1;
-  std::vector<uint16_t> Trace2;
-  std::vector<uint8_t> DTrace1;
-  std::vector<uint8_t> DTrace2;
-  std::vector<uint8_t> DTrace3;
-  std::vector<uint8_t> DTrace4;
+  std::vector<int16_t> Trace1;
+  std::vector<int16_t> Trace2;
+  std::vector<int8_t> DTrace1;
+  std::vector<int8_t> DTrace2;
+  std::vector<int8_t> DTrace3;
+  std::vector<int8_t> DTrace4;
 
   static const uint16_t OneHitSize =
       sizeof(Mod) + sizeof(Ch) + sizeof(TimeStamp) + sizeof(FineTS) +

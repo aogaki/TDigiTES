@@ -36,6 +36,9 @@ class TPSD : public TDigiTes
 
   void SetTraces() override;
 
+  void SetTrginVETO() override;  // Test
+  void SetTrginGate() override;  // Test
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer
