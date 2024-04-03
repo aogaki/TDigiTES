@@ -39,6 +39,8 @@ class TPSD : public TDigiTes
   void SetTrginVETO() override;  // Test
   void SetTrginGate() override;  // Test
 
+  void EnableLVDS() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                         // readout buffer

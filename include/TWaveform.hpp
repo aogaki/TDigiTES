@@ -35,7 +35,9 @@ class TWaveform : public TDigiTes
 
   void SetTrginGate() override;  // Test
   void SetTrginVETO() override;  // Test
-  
+
+  void EnableLVDS() override;
+
  private:
   // Memory
   char *fpReadoutBuffer[MAX_NBRD];                 // readout buffer

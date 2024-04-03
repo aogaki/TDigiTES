@@ -73,7 +73,9 @@ class TDigiTes
 
   virtual void SetTrginVETO() = 0;  // Test
   virtual void SetTrginGate() = 0;  // Test
-  
+
+  virtual void EnableLVDS() = 0;
+
   void Test();
   void SetStartMod(uint32_t startMod = 0) { fStartMod = startMod; };
 

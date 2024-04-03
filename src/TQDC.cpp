@@ -696,3 +696,28 @@ void TQDC::SetTrginVETO()
   }
 }
 void TQDC::SetTrginGate() {}
+
+void TQDC::EnableLVDS()
+{
+  // Set LVDS output busy signal
+
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    // Enable LVDS I/O Busy Enable
+    RegisterSetBits(fHandler[iBrd], 0x8100, 8, 8, 1, fWDcfg);
+
+    // Enable LVDS new feature
+    RegisterSetBits(fHandler[iBrd], 0x811C, 8, 8, 1, fWDcfg);
+
+    // Set all LVDS as output
+    RegisterSetBits(fHandler[iBrd], 0x811C, 2, 2, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x811C, 3, 3, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x811C, 4, 4, 1, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x811C, 5, 5, 1, fWDcfg);
+
+    // Set output busy
+    RegisterSetBits(fHandler[iBrd], 0x81A0, 0, 3, 0b0010, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x81A0, 4, 7, 0b0010, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x81A0, 8, 11, 0b0010, fWDcfg);
+    RegisterSetBits(fHandler[iBrd], 0x81A0, 12, 15, 0b0010, fWDcfg);
+  }
+}

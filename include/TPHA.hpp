@@ -33,6 +33,8 @@ class TPHA : public TDigiTes
   void SetTrginVETO() override;  // Test
   void SetTrginGate() override;  // Test
 
+  void EnableLVDS() override;
+
   void SetThreshold() override;
   void SetTrapezoidPar();
   void SetPHAPar();  // Both threshold and trapezoid, and more

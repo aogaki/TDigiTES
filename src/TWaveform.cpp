@@ -181,6 +181,6 @@ void TWaveform::ReadSmallData()
   // Just for virtual functions
 }
 
-void TWaveform::SetTrginGate() {};  // Test
-void TWaveform::SetTrginVETO() {};  // Test
-  
+void TWaveform::SetTrginGate() {}  // Test
+void TWaveform::SetTrginVETO() {}  // Test
+void TWaveform::EnableLVDS() {}
