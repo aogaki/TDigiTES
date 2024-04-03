@@ -456,9 +456,11 @@ void TQDC::ReadRawData()
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     uint32_t bufferSize;
+    fMutex.lock();
     auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
                                   CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                                   fpReadoutBuffer[iBrd], &bufferSize);
+    fMutex.unlock();
     PrintError(err, "ReadData");
 
     // 0 event also used to check the board has event or not
@@ -491,18 +493,22 @@ void TQDC::DecodeRawData()
         continue;  // in the case of 0, GetDPPEvents makes crush
 
       uint32_t nEvents[MAX_NCH];
+      fMutex.lock();
       auto err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], &(rawData->at(iBrd)[0]),
                                         bufferSize,
                                         (void **)(fppQDCEvents[iBrd]), nEvents);
+      fMutex.unlock();
       PrintError(err, "GetDPPEvents");
 
       if (err == CAEN_DGTZ_Success) {
         // for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
         for (uint iCh = 0; iCh < 64; iCh++) {
           for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+            fMutex.lock();
             err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                                &(fppQDCEvents[iBrd][iCh][iEve]),
                                                fpQDCWaveform[iBrd]);
+            fMutex.unlock();
             PrintError(err, "DecodeDPPWaveforms");
 
             auto data = std::make_shared<TreeData_t>(fpQDCWaveform[iBrd]->Ns);

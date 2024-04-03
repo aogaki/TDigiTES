@@ -69,29 +69,34 @@ void TPHA::FreeMemory()
 void TPHA::ReadSmallData()
 {
   fSmallDataVec = new std::vector<SmallData_t *>();
-  fSmallDataVec->reserve(100000);
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     uint32_t bufferSize;
+    fMutex.lock();
     auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
                                   CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                                   fpReadoutBuffer[iBrd], &bufferSize);
+    fMutex.unlock();
     PrintError(err, "ReadData");
 
     // in the case of 0, GetDPPEvents makes crush
     if (bufferSize == 0) continue;
 
     uint32_t nEvents[MAX_NCH];
+    fMutex.lock();
     err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
                                  bufferSize, (void **)(fppPHAEvents[iBrd]),
                                  nEvents);
+    fMutex.unlock();
     PrintError(err, "GetDPPEvents");
     if (err == CAEN_DGTZ_Success) {
       for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
         for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+          fMutex.lock();
           err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                              &(fppPHAEvents[iBrd][iCh][iEve]),
                                              fpPHAWaveform[iBrd]);
+          fMutex.unlock();
           PrintError(err, "DecodeDPPWaveforms");
 
           auto data = new SmallData_t();
@@ -165,9 +170,11 @@ void TPHA::ReadRawData()
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     uint32_t bufferSize;
+    fMutex.lock();
     auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
                                   CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
                                   fpReadoutBuffer[iBrd], &bufferSize);
+    fMutex.unlock();
     PrintError(err, "ReadData");
 
     std::vector<char> v(bufferSize);
@@ -198,16 +205,20 @@ void TPHA::DecodeRawData()
         continue;  // in the case of 0, GetDPPEvents makes crush
 
       uint32_t nEvents[MAX_NCH];
+      fMutex.lock();
       auto err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
                                         bufferSize,
                                         (void **)(fppPHAEvents[iBrd]), nEvents);
+      fMutex.unlock();
       PrintError(err, "GetDPPEvents");
       if (err == CAEN_DGTZ_Success) {
         for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
           for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+            fMutex.lock();
             err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
                                                &(fppPHAEvents[iBrd][iCh][iEve]),
                                                fpPHAWaveform[iBrd]);
+            fMutex.unlock();
             PrintError(err, "DecodeDPPWaveforms");
 
             auto data = std::make_shared<TreeData_t>(fpPHAWaveform[iBrd]->Ns);

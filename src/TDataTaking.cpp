@@ -52,6 +52,7 @@ void TDataTaking::InitAndStart()
   fDigitizer->UseHWFineTS();
   fDigitizer->SetTraces();
   if (par.TrginMode == TRGIN_MODE_VETO) fDigitizer->SetTrginVETO();
+  fDigitizer->EnableLVDS();
   fDigitizer->AllocateMemory();
   fDigitizer->Start();
 }
