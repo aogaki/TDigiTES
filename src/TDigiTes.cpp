@@ -201,7 +201,7 @@ void TDigiTes::Start()
     }
   }
 
-  fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
+  fDataVec.reset(new std::vector<std::unique_ptr<TreeData_t>>);
   fDataVec->reserve(1000000);
 
   StartAcquisition(fWDcfg, fHandler);
@@ -230,12 +230,12 @@ void TDigiTes::SendSWTrigger()
   }
 }
 
-std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> TDigiTes::GetData()
+std::unique_ptr<std::vector<std::unique_ptr<TreeData_t>>> TDigiTes::GetData()
 {
   std::lock_guard<std::mutex> lock(fMutex);
-  auto retVal = fDataVec;
-  fDataVec.reset(new std::vector<std::shared_ptr<TreeData_t>>);
-  fDataVec->reserve(1000000);
+  auto retVal = std::move(fDataVec);
+  fDataVec.reset(new std::vector<std::unique_ptr<TreeData_t>>);
+  fDataVec->reserve(100000);
   return retVal;
 }
 

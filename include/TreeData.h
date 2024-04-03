@@ -39,6 +39,24 @@ class TreeData
     DTrace4.resize(nSamples);
   };
 
+  TreeData(const TreeData &td)
+  {
+    Mod = td.Mod;
+    Ch = td.Ch;
+    TimeStamp = td.TimeStamp;
+    FineTS = td.FineTS;
+    ChargeLong = td.ChargeLong;
+    ChargeShort = td.ChargeShort;
+    Extras = td.Extras;
+    RecordLength = td.RecordLength;
+    Trace1 = td.Trace1;
+    Trace2 = td.Trace2;
+    DTrace1 = td.DTrace1;
+    DTrace2 = td.DTrace2;
+    DTrace3 = td.DTrace3;
+    DTrace4 = td.DTrace4;
+  };
+
   ~TreeData(){};
 
   uint8_t Mod;

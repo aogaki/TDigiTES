@@ -71,7 +71,7 @@ void TWaveform::ReadRawData()
   }
 
   fMutex.lock();
-  fRawDataQue.push_back(rawData);
+  fRawDataQue.push_back(std::move(rawData));
   fMutex.unlock();
 }
 
@@ -83,7 +83,7 @@ void TWaveform::DecodeRawData()
 
   if (nRawData > 0) {
     fMutex.lock();
-    auto rawData = fRawDataQue.front();
+    auto rawData = std::move(fRawDataQue.front());
     fRawDataQue.pop_front();
     fMutex.unlock();
     for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
@@ -128,7 +128,7 @@ void TWaveform::DecodeRawData()
           if (!((fChMask[iBrd] >> iCh) & 0x1)) continue;
 
           const uint32_t waveformSize = fpEventStd[iBrd]->ChSize[iCh];
-          auto data = std::make_shared<TreeData_t>(waveformSize);
+          auto data = std::make_unique<TreeData_t>(waveformSize);
           data->Mod = iBrd + fStartMod;
           data->Ch = iCh;
           data->TimeStamp = timeStamp;
@@ -142,7 +142,7 @@ void TWaveform::DecodeRawData()
                       waveformSize * eleSizeShort);
 
           fMutex.lock();
-          fDataVec->push_back(data);
+          fDataVec->push_back(std::move(data));
           fMutex.unlock();
         }
       }

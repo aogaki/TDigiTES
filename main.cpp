@@ -62,7 +62,9 @@ int main(int argc, char *argv[])
       dataTaking->InitAndStart();
     }
 
-    dataTaking->DataProcess();
+    // dataTaking->DataProcess();
+    gSystem->ProcessEvents();
+
     usleep(10);
   }
 
