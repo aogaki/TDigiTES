@@ -78,9 +78,10 @@ void TPSD::FreeMemory()
     }
   }
 }
+
 void TPSD::ReadSmallData()
 {
-  fSmallDataVec = new std::vector<SmallData_t *>();
+  fSmallDataVec.reset(new std::vector<std::unique_ptr<SmallData_t>>);
 
   for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
     uint32_t bufferSize;
@@ -111,7 +112,7 @@ void TPSD::ReadSmallData()
           fMutex.unlock();
           PrintError(err, "DecodeDPPWaveforms");
 
-          auto data = new SmallData_t();
+          auto data = std::make_unique<SmallData_t>();
           data->Mod = iBrd;
           data->Ch = iCh;
           data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
@@ -157,19 +158,7 @@ void TPSD::ReadSmallData()
           }
           data->FineTS = data->FineTS + (1000 * TimeStamp);
 
-          if (fFlagTrgCounter[iBrd][iCh]) {
-            // use fine ts as lost trigger counter;
-            double lostTrg = uint16_t((Extras >> 16) & 0xFFFF);
-            lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
-            if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
-              lostTrg += 0xFFFF;
-              fLostTrgCounterOffset[iBrd][iCh]++;
-            }
-            fLostTrgCounter[iBrd][iCh] = lostTrg;
-            data->FineTS = lostTrg;
-          }
-
-          fSmallDataVec->push_back(data);
+          fSmallDataVec->push_back(std::move(data));
         }
       }
     }
@@ -196,7 +185,7 @@ void TPSD::ReadRawData()
   }
 
   fMutex.lock();
-  fRawDataQue.push_back(rawData);
+  fRawDataQue.push_back(std::move(rawData));
   fMutex.unlock();
 }
 
@@ -208,7 +197,7 @@ void TPSD::DecodeRawData()
 
   if (nRawData > 0) {
     fMutex.lock();
-    auto rawData = fRawDataQue.front();
+    auto rawData = std::move(fRawDataQue.front());
     fRawDataQue.pop_front();
     fMutex.unlock();
 
@@ -216,7 +205,6 @@ void TPSD::DecodeRawData()
       uint32_t bufferSize = rawData->at(iBrd).size();
       if (bufferSize == 0)
         continue;  // in the case of 0, GetDPPEvents makes crush
-
       uint32_t nEvents[MAX_NCH];
       fMutex.lock();
       auto err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], &(rawData->at(iBrd)[0]),
@@ -224,7 +212,6 @@ void TPSD::DecodeRawData()
                                         (void **)(fppPSDEvents[iBrd]), nEvents);
       fMutex.unlock();
       PrintError(err, "GetDPPEvents");
-
       if (err == CAEN_DGTZ_Success) {
         for (uint iCh = 0; iCh < fNChs[iBrd]; iCh++) {
           for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
@@ -234,8 +221,9 @@ void TPSD::DecodeRawData()
                                                fpPSDWaveform[iBrd]);
             fMutex.unlock();
             PrintError(err, "DecodeDPPWaveforms");
+            // auto data = TreeData_t(fpPSDWaveform[iBrd]->Ns);
+            auto data = std::make_unique<TreeData_t>(fpPSDWaveform[iBrd]->Ns);
 
-            auto data = std::make_shared<TreeData_t>(fpPSDWaveform[iBrd]->Ns);
             data->Mod = iBrd + fStartMod;
             data->Ch = iCh;
             data->ChargeLong = fppPSDEvents[iBrd][iCh][iEve].ChargeLong;
@@ -243,6 +231,7 @@ void TPSD::DecodeRawData()
             data->RecordLength = fpPSDWaveform[iBrd]->Ns;
             data->Extras = fppPSDEvents[iBrd][iCh][iEve].Extras;
 
+            data->TimeStamp = 0;
             uint64_t timeTag = fppPSDEvents[iBrd][iCh][iEve].TimeTag;
             if (fFlagHWFineTS) {
               uint64_t extTS =
@@ -315,7 +304,7 @@ void TPSD::DecodeRawData()
             }
 
             fMutex.lock();
-            fDataVec->push_back(data);
+            fDataVec->push_back(std::move(data));
             fMutex.unlock();
           }
         }

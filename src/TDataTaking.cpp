@@ -55,13 +55,95 @@ void TDataTaking::InitAndStart()
   fDigitizer->EnableLVDS();
   fDigitizer->AllocateMemory();
   fDigitizer->Start();
+
+  StartThreads();
 }
 
 void TDataTaking::Stop()
 {
+  StopThreads();
   fDigitizer->Stop();
   fDigitizer->FreeMemory();
   fDigitizer->CloseDigitizers();
+}
+
+void TDataTaking::StartThreads()
+{
+  fDataProcessThreadFlag = true;
+  fDataProcessThread = std::thread(&TDataTaking::DataProcessThread, this);
+  fDataReadThreadFlag = true;
+  fDataReadThread = std::thread(&TDataTaking::DataReadThread, this);
+}
+
+void TDataTaking::StopThreads()
+{
+  fDataProcessThreadFlag = false;
+  fDataReadThreadFlag = false;
+  fDataProcessThread.join();
+  fDataReadThread.join();
+}
+
+void TDataTaking::DataReadThread()
+{
+  while (fDataProcessThreadFlag) {
+    fDigitizer->ReadEvents();
+    auto data = fDigitizer->GetData();
+    if (data->size() > 0) {
+      std::lock_guard<std::mutex> lock(fDataMutex);
+      fDataVec.push_back(std::move(data));
+    }
+    usleep(10);
+  }
+}
+
+void TDataTaking::DataProcessThread()
+{
+  while (fDataProcessThreadFlag) {
+    if (fDataVec.size() > 0) {
+      std::vector<std::unique_ptr<std::vector<std::unique_ptr<TreeData_t>>>>
+          dataVec;
+      {
+        std::lock_guard<std::mutex> lock(fDataMutex);
+        dataVec = std::move(fDataVec);
+        fDataVec.clear();
+      }
+
+      for (auto &data : dataVec) {
+        for (auto &d : *data) {
+          auto ch = d->Ch;
+          auto mod = d->Mod;
+          if (ch < 0 || ch > kgCh || mod < 0 || mod > kgMod) continue;
+          fHistArray[mod][ch]->Fill(d->ChargeLong);
+
+          for (auto iPoint = 0; iPoint < d->RecordLength; iPoint++) {
+            fInputArray[d->Mod][d->Ch]->SetPoint(iPoint, iPoint * fTimeStep,
+                                                 d->Trace1[iPoint]);
+            fCFDArray[d->Mod][d->Ch]->SetPoint(iPoint, iPoint * fTimeStep,
+                                               d->Trace2[iPoint]);
+            fLongGateArray[d->Mod][d->Ch]->SetPoint(
+                iPoint, iPoint * fTimeStep, d->DTrace1[iPoint] * 14000 + 3000);
+            fShortGateArray[d->Mod][d->Ch]->SetPoint(
+                iPoint, iPoint * fTimeStep, d->DTrace2[iPoint] * 14000 + 2000);
+          }
+        }
+      }
+
+      for (auto iMod = 0; iMod < kgMod; iMod++) {
+        for (auto iCh = 0; iCh < kgCh; iCh++) {
+          std::lock_guard<std::mutex> lock(fDataMutex);
+          fCanvasArray[iMod][iCh]->cd();
+          fInputArray[iMod][iCh]->Draw("AL");
+          fCFDArray[iMod][iCh]->Draw("SAME");
+          fLongGateArray[iMod][iCh]->Draw("SAME");
+          fShortGateArray[iMod][iCh]->Draw("SAME");
+          fCanvasArray[iMod][iCh]->Update();
+        }
+      }
+    } else {
+      // std::cout << "No data" << std::endl;
+    }
+    usleep(10);
+  }
 }
 
 void TDataTaking::DataProcess()

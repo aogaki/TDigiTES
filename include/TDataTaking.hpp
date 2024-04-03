@@ -11,7 +11,9 @@
 
 #include <array>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 
 #include "TDigiTes.hpp"
 #include "TPHA.hpp"
@@ -60,6 +62,21 @@ class TDataTaking
   void InitLongGateArray();
   std::array<std::array<std::unique_ptr<TGraph>, kgCh>, kgMod> fShortGateArray;
   void InitShortGateArray();
+
+  // For MT
+  std::vector<std::unique_ptr<std::vector<std::unique_ptr<TreeData_t>>>>
+      fDataVec;
+  std::mutex fDataMutex;
+  void StartThreads();
+  void StopThreads();
+
+  std::thread fDataProcessThread;
+  bool fDataProcessThreadFlag;
+  void DataProcessThread();
+
+  std::thread fDataReadThread;
+  bool fDataReadThreadFlag;
+  void DataReadThread();
 
   void CheckFW();
 };

@@ -57,12 +57,13 @@ class TDigiTes
   virtual void FreeMemory() = 0;
 
   // Event readout
-  std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> GetData();
+  std::unique_ptr<std::vector<std::unique_ptr<TreeData_t>>> GetData();
   void ReadEvents();
 
-  // Event readout for need the speed
-  // Delete events will be done by outside of TDigiTES.  Dangerous!!
-  std::vector<SmallData_t *> *GetSmallData() { return fSmallDataVec; };
+  std::unique_ptr<std::vector<std::unique_ptr<SmallData_t>>> GetSmallData()
+  {
+    return std::move(fSmallDataVec);
+  };
   virtual void ReadSmallData() = 0;
 
   virtual void UseFineTS() = 0;
@@ -105,10 +106,10 @@ class TDigiTes
   double fLostTrgCounter[MAX_NBRD][MAX_NCH];
   uint32_t fLostTrgCounterOffset[MAX_NBRD][MAX_NCH];
 
-  std::shared_ptr<std::vector<std::shared_ptr<TreeData_t>>> fDataVec;
-  std::vector<SmallData_t *> *fSmallDataVec;
+  std::unique_ptr<std::vector<std::unique_ptr<TreeData_t>>> fDataVec;
+  std::unique_ptr<std::vector<std::unique_ptr<SmallData_t>>> fSmallDataVec;
 
-  typedef std::shared_ptr<std::vector<std::vector<char>>> RawData_t;
+  typedef std::unique_ptr<std::vector<std::vector<char>>> RawData_t;
   std::deque<RawData_t> fRawDataQue;
   virtual void ReadRawData() = 0;
   virtual void DecodeRawData() = 0;

@@ -448,7 +448,67 @@ void TQDC::FreeMemory()
   }
 }
 
-void TQDC::ReadSmallData() {}
+void TQDC::ReadSmallData()
+{
+  fSmallDataVec.reset(new std::vector<std::unique_ptr<SmallData_t>>);
+  for (auto iBrd = 0; iBrd < fWDcfg.NumBrd; iBrd++) {
+    uint32_t bufferSize;
+    fMutex.lock();
+    auto err = CAEN_DGTZ_ReadData(fHandler[iBrd],
+                                  CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                                  fpReadoutBuffer[iBrd], &bufferSize);
+    fMutex.unlock();
+    PrintError(err, "ReadData");
+
+    uint32_t nEvents[MAX_NCH];
+    fMutex.lock();
+    err = CAEN_DGTZ_GetDPPEvents(fHandler[iBrd], fpReadoutBuffer[iBrd],
+                                 bufferSize, (void **)(fppQDCEvents[iBrd]),
+                                 nEvents);
+    fMutex.unlock();
+    PrintError(err, "GetDPPEvents");
+
+    if (err == CAEN_DGTZ_Success) {
+      for (uint iCh = 0; iCh < 64; iCh++) {
+        for (uint iEve = 0; iEve < nEvents[iCh]; iEve++) {
+          fMutex.lock();
+          err = CAEN_DGTZ_DecodeDPPWaveforms(fHandler[iBrd],
+                                             &(fppQDCEvents[iBrd][iCh][iEve]),
+                                             fpQDCWaveform[iBrd]);
+          fMutex.unlock();
+          PrintError(err, "DecodeDPPWaveforms");
+
+          auto data = std::make_unique<SmallData_t>();
+          data->Mod = iBrd + fStartMod;
+          data->Ch = iCh;
+          data->ChargeLong = fppQDCEvents[iBrd][iCh][iEve].Charge;
+
+          auto Extras = fppQDCEvents[iBrd][iCh][iEve].Extras;
+          uint64_t TimeStamp = 0;
+          uint64_t timeTag = fppQDCEvents[iBrd][iCh][iEve].TimeTag;
+          if (fFlagHWFineTS || fFlagExtTS) {
+            uint64_t extTS = ((uint64_t)((Extras >> 16) & 0xFFFF) << 31);
+            uint64_t tdc = (timeTag + extTS) * fWDcfg.Tsampl;
+            TimeStamp = tdc;
+          } else {
+            const uint64_t TSMask =
+                (fWDcfg.DppType == DPP_PSD_751) ? 0xFFFFFFFF : 0x7FFFFFFF;
+            if (timeTag < fPreviousTime[iBrd][iCh]) {
+              fTimeOffset[iBrd][iCh] += (TSMask + 1);
+            }
+            fPreviousTime[iBrd][iCh] = timeTag;
+            uint64_t tdc = (timeTag + fTimeOffset[iBrd][iCh]) * fWDcfg.Tsampl;
+            TimeStamp = tdc;
+          }
+
+          data->FineTS = (1000 * TimeStamp);
+
+          fSmallDataVec->push_back(std::move(data));
+        }
+      }
+    }
+  }
+}
 
 void TQDC::ReadRawData()
 {
@@ -470,7 +530,7 @@ void TQDC::ReadRawData()
   }
 
   fMutex.lock();
-  fRawDataQue.push_back(rawData);
+  fRawDataQue.push_back(std::move(rawData));
   fMutex.unlock();
 }
 
@@ -482,7 +542,7 @@ void TQDC::DecodeRawData()
 
   if (nRawData > 0) {
     fMutex.lock();
-    auto rawData = fRawDataQue.front();
+    auto rawData = std::move(fRawDataQue.front());
     fRawDataQue.pop_front();
     fMutex.unlock();
 
@@ -510,8 +570,8 @@ void TQDC::DecodeRawData()
                                                fpQDCWaveform[iBrd]);
             fMutex.unlock();
             PrintError(err, "DecodeDPPWaveforms");
+            auto data = std::make_unique<TreeData_t>(fpQDCWaveform[iBrd]->Ns);
 
-            auto data = std::make_shared<TreeData_t>(fpQDCWaveform[iBrd]->Ns);
             data->Mod = iBrd + fStartMod;
             data->Ch = iCh;
             data->ChargeLong = fppQDCEvents[iBrd][iCh][iEve].Charge;
@@ -537,40 +597,6 @@ void TQDC::DecodeRawData()
             }
 
             data->FineTS = (1000 * data->TimeStamp);
-            // if (fFlagFineTS) {
-            //   // For safety and to kill the rounding error, cleary using double
-            //   double posZC = uint16_t((data->Extras >> 16) & 0xFFFF);
-            //   double negZC = uint16_t(data->Extras & 0xFFFF);
-            //   double thrZC = 8192;  // (1 << 13). (1 << 14) is maximum of ADC
-            //   if (fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PSD ||
-            //       fWDcfg.DiscrMode[iBrd][iCh] == DISCR_MODE_LED_PHA)
-            //     thrZC += fWDcfg.TrgThreshold[iBrd][iCh];
-
-            //   if ((negZC <= thrZC) && (posZC >= thrZC)) {
-            //     double dt =
-            //         (1 + fWDcfg.CFDinterp[iBrd][iCh] * 2) * fWDcfg.Tsampl;
-            //     data->FineTS =
-            //         ((dt * 1000. * (thrZC - negZC) / (posZC - negZC)) + 0.5);
-            //   }
-            // } else if (fFlagHWFineTS) {
-            //   double fineTS = data->Extras & 0b1111111111;  // 10 bits
-            //   data->FineTS = fWDcfg.Tsampl * 1000. * fineTS / (1024. - 1.);
-            //   // data->FineTS = fWDcfg.Tsampl * fineTS;
-            //   // data->FineTS = fineTS;
-            // }
-            // data->FineTS = data->FineTS + (1000 * data->TimeStamp);
-
-            // if (fFlagTrgCounter[iBrd][iCh]) {
-            //   // use fine ts as lost trigger counter;
-            //   double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
-            //   lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
-            //   if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
-            //     lostTrg += 0xFFFF;
-            //     fLostTrgCounterOffset[iBrd][iCh]++;
-            //   }
-            //   fLostTrgCounter[iBrd][iCh] = lostTrg;
-            //   data->FineTS = lostTrg;
-            // }
 
             if (data->RecordLength > 0) {
               constexpr auto eleSizeShort = sizeof(data->Trace1[0]);
@@ -591,7 +617,7 @@ void TQDC::DecodeRawData()
             }
 
             fMutex.lock();
-            fDataVec->push_back(data);
+            fDataVec->push_back(std::move(data));
             fMutex.unlock();
           }
         }
