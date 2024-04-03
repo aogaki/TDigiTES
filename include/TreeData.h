@@ -20,6 +20,25 @@ class TreeData
     DTrace4.resize(nSamples);
   };
 
+  TreeData(uint8_t mod, uint8_t ch, uint64_t ts, double fineTS, uint16_t cl,
+           uint16_t cs, uint32_t extras = 0, uint32_t nSamples = 0)
+  {
+    Mod = mod;
+    Ch = ch;
+    TimeStamp = ts;
+    FineTS = fineTS;
+    ChargeLong = cl;
+    ChargeShort = cs;
+    Extras = extras;
+    RecordLength = nSamples;
+    Trace1.resize(nSamples);
+    Trace2.resize(nSamples);
+    DTrace1.resize(nSamples);
+    DTrace2.resize(nSamples);
+    DTrace3.resize(nSamples);
+    DTrace4.resize(nSamples);
+  };
+
   ~TreeData(){};
 
   uint8_t Mod;
