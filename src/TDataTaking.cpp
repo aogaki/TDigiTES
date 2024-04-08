@@ -108,6 +108,13 @@ void TDataTaking::DataProcessThread()
         fDataVec.clear();
       }
 
+      bool hitArray[kgMod][kgCh];
+      for (auto iMod = 0; iMod < kgMod; iMod++) {
+        for (auto iCh = 0; iCh < kgCh; iCh++) {
+          hitArray[iMod][iCh] = false;
+        }
+      }
+
       for (auto &data : dataVec) {
         for (auto &d : *data) {
           auto ch = d->Ch;
@@ -115,32 +122,38 @@ void TDataTaking::DataProcessThread()
           if (ch < 0 || ch > kgCh || mod < 0 || mod > kgMod) continue;
           fHistArray[mod][ch]->Fill(d->ChargeLong);
 
+          std::lock_guard<std::mutex> lock(fDataMutex);
           for (auto iPoint = 0; iPoint < d->RecordLength; iPoint++) {
-            fInputArray[d->Mod][d->Ch]->SetPoint(iPoint, iPoint * fTimeStep,
-                                                 d->Trace1[iPoint]);
-            fCFDArray[d->Mod][d->Ch]->SetPoint(iPoint, iPoint * fTimeStep,
-                                               d->Trace2[iPoint]);
-            fLongGateArray[d->Mod][d->Ch]->SetPoint(
+            fInputArray[mod][ch]->SetPoint(iPoint, iPoint * fTimeStep,
+                                           d->Trace1[iPoint]);
+            fCFDArray[mod][ch]->SetPoint(iPoint, iPoint * fTimeStep,
+                                         d->Trace2[iPoint]);
+            fLongGateArray[mod][ch]->SetPoint(
                 iPoint, iPoint * fTimeStep, d->DTrace1[iPoint] * 14000 + 3000);
-            fShortGateArray[d->Mod][d->Ch]->SetPoint(
+            fShortGateArray[mod][ch]->SetPoint(
                 iPoint, iPoint * fTimeStep, d->DTrace2[iPoint] * 14000 + 2000);
           }
+          hitArray[mod][ch] = true;
         }
       }
 
       for (auto iMod = 0; iMod < kgMod; iMod++) {
         for (auto iCh = 0; iCh < kgCh; iCh++) {
-          std::lock_guard<std::mutex> lock(fDataMutex);
-          fCanvasArray[iMod][iCh]->cd();
-          fInputArray[iMod][iCh]->Draw("AL");
-          fCFDArray[iMod][iCh]->Draw("SAME");
-          fLongGateArray[iMod][iCh]->Draw("SAME");
-          fShortGateArray[iMod][iCh]->Draw("SAME");
-          fCanvasArray[iMod][iCh]->Update();
+          if (hitArray[iMod][iCh]) {
+            std::lock_guard<std::mutex> lock(fDataMutex);
+            fCanvasArray[iMod][iCh]->cd();
+            fInputArray[iMod][iCh]->Draw("AL");
+            fCFDArray[iMod][iCh]->Draw("SAME");
+            fLongGateArray[iMod][iCh]->Draw("SAME");
+            fShortGateArray[iMod][iCh]->Draw("SAME");
+            //fCanvasArray[iMod][iCh]->Modified();
+            //fCanvasArray[iMod][iCh]->Update();
+          }
         }
       }
     } else {
-      // std::cout << "No data" << std::endl;
+      // static uint64_t counter = 0;
+      // std::cout << "No data: " << ++counter << std::endl;
     }
     usleep(10);
   }

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <termios.h>
 
+#include <TROOT.h>
+
 #include <iostream>
 #include <string>
 
@@ -40,6 +42,8 @@ AppState InputCheck()
 
 int main(int argc, char *argv[])
 {
+  ROOT::EnableImplicitMT();
+
   // Check arguments
   std::string configFile;
   if (argc != 2) {

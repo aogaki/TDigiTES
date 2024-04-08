@@ -33,8 +33,10 @@ void TDigiTes::OpenDigitizers()
 {
   CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
   for (auto b = 0; b < fWDcfg.NumBrd; b++) {
-    ret = CAEN_DGTZ_OpenDigitizer((CAEN_DGTZ_ConnectionType)fWDcfg.LinkType[b],
-                                  fWDcfg.LinkNum[b], fWDcfg.ConetNode[b],
+    std::cout << fWDcfg.LinkType[b] <<"\t"<<
+      fWDcfg.LinkNum[b] <<"\t"<< fWDcfg.ConetNode[b] << std::endl;
+    ret = CAEN_DGTZ_OpenDigitizer2((CAEN_DGTZ_ConnectionType)fWDcfg.LinkType[b],
+                                  &fWDcfg.LinkNum[b], fWDcfg.ConetNode[b],
                                   fWDcfg.BaseAddress[b], &fHandler[b]);
     CAEN_DGTZ_Reset(fHandler[b]);
 
