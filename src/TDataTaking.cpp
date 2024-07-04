@@ -5,7 +5,7 @@
 TDataTaking::TDataTaking(const std::string &configFile)
     : fConfigFile(configFile)
 {
-  fDigitizer = std::make_unique<TWaveform>();
+  fDigitizer = std::make_unique<TWaveform>();  // Is this a problem???
   fDigitizer->LoadParameters(fConfigFile);
   fDigitizer->OpenDigitizers();
   fDigitizer->GetBoardInfo();

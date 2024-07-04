@@ -17,7 +17,13 @@ TPHA::TPHA()
       fTimeOffset[iBrd][iCh] = 0;
     }
   }
-};
+
+  for (auto &&mod : fFlagTrgCounter) {
+    for (auto &&ch : mod) {
+      ch = false;
+    }
+  }
+}
 
 TPHA::~TPHA() { FreeMemory(); };
 
@@ -257,17 +263,17 @@ void TPHA::DecodeRawData()
             }
             data->FineTS = data->FineTS + (1000 * data->TimeStamp);
 
-            if (fFlagTrgCounter[iBrd][iCh]) {
-              // use fine ts as lost trigger counter;
-              double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
-              lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
-              if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
-                lostTrg += 0xFFFF;
-                fLostTrgCounterOffset[iBrd][iCh]++;
-              }
-              fLostTrgCounter[iBrd][iCh] = lostTrg;
-              data->FineTS = lostTrg;
-            }
+            // if (fFlagTrgCounter[iBrd][iCh]) {
+            //   // use fine ts as lost trigger counter;
+            //   double lostTrg = uint16_t((data->Extras >> 16) & 0xFFFF);
+            //   lostTrg += fLostTrgCounterOffset[iBrd][iCh] * 0xFFFF;
+            //   if (fLostTrgCounter[iBrd][iCh] > lostTrg) {
+            //     lostTrg += 0xFFFF;
+            //     fLostTrgCounterOffset[iBrd][iCh]++;
+            //   }
+            //   fLostTrgCounter[iBrd][iCh] = lostTrg;
+            //   data->FineTS = lostTrg;
+            // }
 
             if (data->RecordLength > 0) {
               constexpr auto eleSizeShort = sizeof(data->Trace1[0]);
